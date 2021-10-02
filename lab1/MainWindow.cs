@@ -256,8 +256,8 @@ namespace lab1
             double minScale = Math.Min(height / (2 * maxValueY), width / (2 * maxValueX));
             _adjustmentScaleX.Value = minScale;
             _adjustmentScaleY.Value = minScale;
-            scale.X = _adjustmentScaleX.Value;
-            scale.Y = _adjustmentScaleY.Value;
+            scale.X = minScale;
+            scale.Y = minScale;
         }
 
         private void DrawAxices(Context ct)
