@@ -1,3 +1,4 @@
+using Cairo;
 using System;
 using System.Collections.Generic;
 
@@ -384,6 +385,57 @@ namespace lab2
                 return phi + MAX_DEG;
             }
             return phi;
+        }
+
+        public static Cairo.Color GenRandColor()
+        {
+            /* How to Generate Random Colors Programmatically - Martin Ankerl */
+            Random rnd = new Random();
+            return HsvToRgb(rnd.NextDouble(), 0.3, 0.99);
+        }
+
+        public static Cairo.Color HsvToRgb(double h, double s, double v)
+        {
+            double r = 0, g = 0, b = 0;
+            int h_ = (int)(h * 6);
+            double f = h * 6 - h_;
+            double p = v * (1 - s);
+            double q = v * (1 - f * s);
+            double t = v * (1 - (1 - f) * s);
+            switch (h_)
+            {
+                case 0:
+                    r = v;
+                    g = t;
+                    b = p;
+                    break;
+                case 1:
+                    r = q;
+                    g = v;
+                    b = p;
+                    break;
+                case 2:
+                    r = p;
+                    g = q;
+                    b = v;
+                    break;
+                case 3:
+                    r = q;
+                    g = q;
+                    b = v;
+                    break;
+                case 4:
+                    r = t;
+                    g = p;
+                    b = v;
+                    break;
+                case 5:
+                    r = v;
+                    g = p;
+                    b = q;
+                    break;
+            }
+            return new Cairo.Color(r, g, b);
         }
     }
 }

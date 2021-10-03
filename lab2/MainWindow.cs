@@ -10,6 +10,7 @@ namespace lab2
     class MainWindow : Gtk.Window
     {
         [UI] private DrawingArea _drawingArea = null;
+
         [UI] private Adjustment _adjustmentAlpha = null;
         [UI] private Adjustment _adjustmentBeta = null;
         [UI] private Adjustment _adjustmentGamma = null;
@@ -19,11 +20,28 @@ namespace lab2
         [UI] private Adjustment _adjustmentShiftX = null;
         [UI] private Adjustment _adjustmentShiftY = null;
         [UI] private Adjustment _adjustmentShiftZ = null;
+
+        /* Drawing elements */
+        [UI] private CheckButton _checkButtonDrawFrame = null;
         [UI] private CheckButton _checkButtonDrawNormalVectors = null;
+        [UI] private CheckButton _checkButtonIgnoreInvisible = null;
         [UI] private CheckButton _checkButtonFillPolygons = null;
         [UI] private CheckButton _checkButtonRandomizeColours = null;
-        [UI] private CheckButton _checkButtonIgnoreInvisible = null;
 
+        /* Projection elements */
+        [UI] private RadioButton _radioButtonNoProjection = null;
+        [UI] private RadioButton _radioButtonProjX = null;
+        [UI] private RadioButton _radioButtonProjY = null;
+        [UI] private RadioButton _radioButtonProjZ = null;
+        [UI] private RadioButton _radioButtonIsometric = null;
+
+        [UI] private CheckButton _checkButtonAutoScale = null;
+
+        [UI] private Adjustment _adjustmentN = null;
+        [UI] private Adjustment _adjustmentR = null;
+        [UI] private Adjustment _adjustmentH = null;
+
+        /* Result matrix */
         [UI] private Adjustment _adjustmentMatrix00 = null;
         [UI] private Adjustment _adjustmentMatrix01 = null;
         [UI] private Adjustment _adjustmentMatrix02 = null;
@@ -42,6 +60,10 @@ namespace lab2
         [UI] private Adjustment _adjustmentMatrix33 = null;
 
         private const double NORMAL_VECTOR_SIZE = 20;
+        private const double ROTATION_SPEED = 0.5;
+        private readonly double ISOMETRIC_X = Misc.ToRadians(-35);
+        private readonly double ISOMETRIC_Y = Misc.ToRadians(-45);
+        private readonly double ISOMETRIC_Z = Misc.ToRadians(0);
         private readonly Cairo.Color DEFAULT_LINE_COLOR = new Cairo.Color(0, 0, 1);
         private readonly Cairo.Color DEFAULT_POLYGON_COLOR = new Cairo.Color(0, 1, 0);
         private readonly Cairo.Color DEFAULT_NORMAL_COLOR = new Cairo.Color(1, 0, 0);
@@ -61,14 +83,19 @@ namespace lab2
         private double shiftY = 0;
         private double shiftZ = 0;
         private Matrix4D matr = null;
-        private double r = 100;
-        private double h = 100;
-        private OctahedralPrism prism = null;
+        private int n = 8;
+        private double r = 0;
+        private double h = 0;
+        private Prism prism = null;
+        private bool drawFrame = true;
         private bool drawNormalVectors = false;
+        private bool ignoreInvisible = true;
+        private bool needToGenColors = true;
         private bool fillPolygons = false;
         private bool randomizeColours = false;
-        private bool randomizeToggled = true;
-        private bool ignoreInvisible = false;
+        private bool autoScale = false;
+        private bool mouseMotionFlag = false;
+        private Vector2D pointerPos = null;
 
         public MainWindow() : this(new Builder("MainWindow.glade")) { }
 
@@ -77,6 +104,7 @@ namespace lab2
             builder.Autoconnect(this);
             DeleteEvent += Window_DeleteEvent;
             AddValueChangedEventToAdjustments();
+            AddEventsToDrawingArea();
             _drawingArea.Drawn += DrawingArea_DrawnEvent;
         }
 
@@ -96,23 +124,66 @@ namespace lab2
             _adjustmentShiftX.ValueChanged += Redraw;
             _adjustmentShiftY.ValueChanged += Redraw;
             _adjustmentShiftZ.ValueChanged += Redraw;
+            _checkButtonDrawFrame.Toggled += Redraw;
             _checkButtonDrawNormalVectors.Toggled += Redraw;
+            _checkButtonIgnoreInvisible.Toggled += Redraw;
             _checkButtonFillPolygons.Toggled += Redraw;
             _checkButtonRandomizeColours.Toggled += RandomizeColoursToggledEvent;
-            _checkButtonIgnoreInvisible.Toggled += Redraw;
+            _radioButtonNoProjection.Toggled += Redraw;
+            _radioButtonProjX.Toggled += Redraw;
+            _radioButtonProjY.Toggled += Redraw;
+            _radioButtonProjZ.Toggled += Redraw;
+            _radioButtonIsometric.Toggled += Redraw;
+            _checkButtonAutoScale.Toggled += Redraw;
+            _adjustmentN.ValueChanged += AdjustmentN_ValueChangedEvent;
+            _adjustmentR.ValueChanged += Redraw;
+            _adjustmentH.ValueChanged += Redraw;
+        }
+
+        private void AddEventsToDrawingArea()
+        {
+            _drawingArea.Events |= EventMask.ButtonPressMask;
+            _drawingArea.ButtonPressEvent += DrawingArea_ButtonPressEvent;
+            _drawingArea.Events |= EventMask.PointerMotionMask;
+            _drawingArea.MotionNotifyEvent += DrawingArea_MotionNotifyEvent;
+            _drawingArea.Events |= EventMask.ButtonReleaseMask;
+            _drawingArea.ButtonReleaseEvent += DrawingArea_ButtonReleaseEvent;
+        }
+
+        private void DrawingArea_ButtonPressEvent(object sender, ButtonPressEventArgs args)
+        {
+            mouseMotionFlag = true;
+            pointerPos = new Vector2D(args.Event.X, args.Event.Y);
+        }
+
+        private void DrawingArea_MotionNotifyEvent(object sender, MotionNotifyEventArgs args)
+        {
+            if (mouseMotionFlag)
+            {
+                Vector2D pointerPosNext = new Vector2D(args.Event.X, args.Event.Y);
+                Vector2D delta = pointerPosNext - pointerPos;
+                _adjustmentAlpha.Value = _adjustmentAlpha.Value + ROTATION_SPEED * delta.Y;
+                _adjustmentBeta.Value = _adjustmentBeta.Value + ROTATION_SPEED * delta.X;
+                pointerPos = pointerPosNext;
+                _drawingArea.QueueDraw();
+            }
+        }
+
+        private void DrawingArea_ButtonReleaseEvent(object sender, ButtonReleaseEventArgs args)
+        {
+            mouseMotionFlag = false;
         }
 
         private void GenColors()
         {
             randomizeColours = _checkButtonRandomizeColours.Active;
-            if (randomizeToggled)
+            if (needToGenColors)
             {
-                Random rnd = new Random();
                 polygonColors = new List<Cairo.Color>();
                 for (int i = 0; i < prism._polygons.Count; ++i) {
                     if (randomizeColours)
                     {
-                        polygonColors.Add(new Cairo.Color(rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble()));
+                        polygonColors.Add(Misc.GenRandColor());
                     }
                     else
                     {
@@ -120,7 +191,7 @@ namespace lab2
                     }
                 }
             }
-            randomizeToggled = false;
+            needToGenColors = false;
         }
 
         private void AdjustmentAlpha_ValueChangedEvent(object sender, EventArgs args)
@@ -148,7 +219,15 @@ namespace lab2
 
         private void RandomizeColoursToggledEvent(object sender, EventArgs args)
         {
-            randomizeToggled = true;
+            needToGenColors = true;
+            GenColors();
+            _drawingArea.QueueDraw();
+        }
+
+        private void AdjustmentN_ValueChangedEvent(object sender, EventArgs args)
+        {
+            needToGenColors = true;
+            GetData();
             GenColors();
             _drawingArea.QueueDraw();
         }
@@ -164,6 +243,10 @@ namespace lab2
             cr.Paint();
             cr.LineWidth = 1;
             prism.Transform(matr);
+            if (autoScale)
+            {
+                Rescale();
+            }
             DrawFigure(cr);
             if (drawNormalVectors)
             {
@@ -189,19 +272,44 @@ namespace lab2
             scaleY = _adjustmentScaleY.Value;
             scaleZ = _adjustmentScaleZ.Value;
 
-            prism = new OctahedralPrism(r, h);
+            n = (int)_adjustmentN.Value;
+            r = _adjustmentR.Value;
+            h = _adjustmentH.Value;
+            prism = new Prism(n, r, h);
 
+            drawFrame = _checkButtonDrawFrame.Active;
             drawNormalVectors = _checkButtonDrawNormalVectors.Active;
-            fillPolygons = _checkButtonFillPolygons.Active;
             ignoreInvisible = _checkButtonIgnoreInvisible.Active;
+            fillPolygons = _checkButtonFillPolygons.Active;
+
+            autoScale = _checkButtonAutoScale.Active;
         }
 
         private void GenMatrix()
         {
             matr = new Matrix4D();
+            if (_radioButtonProjX.Active)
+            {
+                matr = matr * Matrix4D.ProjX();
+            }
+            if (_radioButtonProjY.Active)
+            {
+                matr = matr * Matrix4D.ProjY();
+            }
+            if (_radioButtonProjZ.Active)
+            {
+                matr = matr * Matrix4D.ProjZ();
+            }
             matr = matr * Matrix4D.ScaleX(scaleX) * Matrix4D.ScaleY(scaleY) * Matrix4D.ScaleZ(scaleZ);
-            matr = matr * Matrix4D.ShiftX(shiftX) * Matrix4D.ShiftY(shiftY) * Matrix4D.ShiftZ(shiftZ);
-            matr = matr * Matrix4D.RotX(alpha) * Matrix4D.RotY(beta) * Matrix4D.RotZ(gamma);
+            if (_radioButtonIsometric.Active)
+            {
+                matr = matr * Matrix4D.RotX(ISOMETRIC_X) * Matrix4D.RotY(ISOMETRIC_Y) * Matrix4D.RotZ(ISOMETRIC_Z);
+            }
+            else
+            {
+                matr = matr * Matrix4D.ShiftX(shiftX) * Matrix4D.ShiftY(shiftY) * Matrix4D.ShiftZ(shiftZ);
+                matr = matr * Matrix4D.RotX(alpha) * Matrix4D.RotY(beta) * Matrix4D.RotZ(gamma);
+            }
             SetMatrixAdjustments();
         }
 
@@ -228,6 +336,21 @@ namespace lab2
             _adjustmentMatrix33.Value = matr[3, 3];
         }
 
+        void Rescale()
+        {
+            double maxCord = -Misc.INF;
+            foreach (VertexPolygonsPair item in prism._vertices)
+            {
+                maxCord = Math.Max(maxCord, Math.Abs(item.First.X));
+                maxCord = Math.Max(maxCord, Math.Abs(item.First.Y));
+                maxCord = Math.Max(maxCord, Math.Abs(item.First.Z));
+            }
+            double rescaleCoef = Math.Min(width / (2 * maxCord), height / (2 * maxCord));
+            Matrix4D rescaleMatr = new Matrix4D();
+            rescaleMatr = rescaleMatr * Matrix4D.ScaleX(rescaleCoef) * Matrix4D.ScaleY(rescaleCoef) * Matrix4D.ScaleZ(rescaleCoef);
+            prism.Transform(rescaleMatr);
+        }
+
         private void DrawFigure(Context cr)
         {
             for (int i = 0; i < prism._polygons.Count; ++i)
@@ -235,17 +358,21 @@ namespace lab2
                 if (!ignoreInvisible || prism._polygons[i].Visible()) {
                     if (fillPolygons)
                     {
-                        DrawAndFillPolygon(cr, i);
+                        FillPolygon(cr, i);
+                        if (drawFrame)
+                        {
+                            DrawPolygon(cr, i, DEFAULT_LINE_COLOR_FILL);
+                        }
                     }
-                    else
+                    else if (drawFrame)
                     {
-                        DrawPolygon(cr, i);
+                        DrawPolygon(cr, i, DEFAULT_LINE_COLOR);
                     }
                 }
             }
         }
 
-        private void DrawNormalVectors(Context cr, OctahedralPrism prism)
+        private void DrawNormalVectors(Context cr, Prism prism)
         {
             for (int i = 0; i < prism._polygons.Count; ++i)
             {
@@ -256,7 +383,8 @@ namespace lab2
             }
         }
 
-        private void DrawAndFillPolygon(Context cr, int id)
+        // todo сделать нормальные функции
+        private void FillPolygon(Context cr, int id)
         {
             Polygon poly = prism._polygons[id];
             Vector4D a = poly._data[0];
@@ -272,14 +400,11 @@ namespace lab2
             cr.SetSourceColor(polygonColors[id]);
             cr.FillPreserve();
             cr.Restore();
-            cr.SetSourceColor(DEFAULT_LINE_COLOR_FILL);
-            cr.Stroke();
-
         }
 
-        private void DrawPolygon(Context cr, int id)
+        private void DrawPolygon(Context cr, int id, Cairo.Color col)
         {
-            cr.SetSourceColor(DEFAULT_LINE_COLOR);
+            cr.SetSourceColor(col);
             Polygon poly = prism._polygons[id];
             for (int i = 0; i < poly._data.Count; ++i)
             {

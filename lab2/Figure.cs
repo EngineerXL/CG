@@ -69,7 +69,7 @@ namespace lab2
         }
     }
 
-    public class OctahedralPrism
+    public class Prism
     {
         private Vector4D centerLow;
         private Vector4D centerHigh;
@@ -79,15 +79,18 @@ namespace lab2
         public List<VertexPolygonsPair> _vertices;
         public List<Polygon> _polygons;
 
-        private const double D_PHI = 45;
-        private const int POLYGON_COUNT = 32;
-        private const int BASE_VERTEX_COUNT = 8;
+        private double dPhi;
+        private int polygonsCount;
+        private int baseVerticiesCount;
 
-        public OctahedralPrism(double r, double h)
+        public Prism(int n, double r, double h)
         {
-            low = new List<Vector4D>(BASE_VERTEX_COUNT);
-            high = new List<Vector4D>(BASE_VERTEX_COUNT);
-            _polygons = new List<Polygon>(POLYGON_COUNT);
+            dPhi = Misc.MAX_DEG / (double)n;
+            polygonsCount = 4 * n;
+            baseVerticiesCount = n;
+            low = new List<Vector4D>(baseVerticiesCount);
+            high = new List<Vector4D>(baseVerticiesCount);
+            _polygons = new List<Polygon>(polygonsCount);
             GenVertices(r, h);
             GenFigure();
             GenVertexPolygons();
@@ -95,20 +98,20 @@ namespace lab2
 
         private void GenVertices(double r, double h)
         {
-            _vertices = new List<VertexPolygonsPair>(2 * BASE_VERTEX_COUNT + 2);
+            _vertices = new List<VertexPolygonsPair>(2 * baseVerticiesCount + 2);
             centerLow = new Vector4D(0, 0, 0, 1);
             centerHigh = new Vector4D(0, 0, h, 1);
             _vertices.Add(new VertexPolygonsPair(centerLow));
             _vertices.Add(new VertexPolygonsPair(centerHigh));
             double phi = 0;
-            for (int i = 0; i < BASE_VERTEX_COUNT; ++i)
+            for (int i = 0; i < baseVerticiesCount; ++i)
             {
                 Vector4D vertex = new Vector4D(r * Math.Cos(Misc.ToRadians(phi)), r * Math.Sin(Misc.ToRadians(phi)), 0, 0);
                 low.Add(vertex + centerLow);
                 high.Add(vertex + centerHigh);
-                phi = phi + D_PHI;
+                phi = phi + dPhi;
             }
-            for (int i = 0; i < BASE_VERTEX_COUNT; ++i)
+            for (int i = 0; i < baseVerticiesCount; ++i)
             {
                 _vertices.Add(new VertexPolygonsPair(low[i]));
                 _vertices.Add(new VertexPolygonsPair(high[i]));
@@ -117,12 +120,12 @@ namespace lab2
 
         private void GenFigure()
         {
-            for (int i = 0; i < BASE_VERTEX_COUNT; ++i)
+            for (int i = 0; i < baseVerticiesCount; ++i)
             {
                 Vector4D a = low[i];
                 Vector4D b = high[i];
-                Vector4D c = high[(i + 1) % BASE_VERTEX_COUNT];
-                Vector4D d = low[(i + 1) % BASE_VERTEX_COUNT];
+                Vector4D c = high[(i + 1) % baseVerticiesCount];
+                Vector4D d = low[(i + 1) % baseVerticiesCount];
                 _polygons.Add(new Polygon(d, c, a));
                 _polygons.Add(new Polygon(b, a, c));
                 _polygons.Add(new Polygon(centerLow, d, a));
