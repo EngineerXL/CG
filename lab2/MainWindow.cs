@@ -59,8 +59,10 @@ namespace lab2
         [UI] private Adjustment _adjustmentMatrix32 = null;
         [UI] private Adjustment _adjustmentMatrix33 = null;
 
-        private const double NORMAL_VECTOR_SIZE = 20;
+        private const double NORMAL_VECTOR_SIZE = 32;
         private const double ROTATION_SPEED = 0.5;
+        private const double AXIS_SIZE = 40;
+        private const int POINT_SIZE = 4;
         private readonly double ISOMETRIC_X = Misc.ToRadians(-35);
         private readonly double ISOMETRIC_Y = Misc.ToRadians(-45);
         private readonly double ISOMETRIC_Z = Misc.ToRadians(0);
@@ -252,6 +254,7 @@ namespace lab2
             {
                 DrawNormalVectors(cr, prism);
             }
+            DrawAxises(cr, 0.9 * (new Vector2D(width, height)));
         }
 
         private void GetData()
@@ -336,7 +339,7 @@ namespace lab2
             _adjustmentMatrix33.Value = matr[3, 3];
         }
 
-        void Rescale()
+        private void Rescale()
         {
             double maxCord = -Misc.INF;
             foreach (VertexPolygonsPair item in prism._vertices)
@@ -358,7 +361,7 @@ namespace lab2
                 if (!ignoreInvisible || prism._polygons[i].Visible()) {
                     if (fillPolygons)
                     {
-                        FillPolygon(cr, i);
+                        FillPolygon(cr, i, polygonColors[i]);
                         if (drawFrame)
                         {
                             DrawPolygon(cr, i, DEFAULT_LINE_COLOR_FILL);
@@ -372,70 +375,93 @@ namespace lab2
             }
         }
 
+        private void DrawAxises(Context cr, Vector2D shift)
+        {
+            Matrix4D matr = new Matrix4D();
+            if (_radioButtonIsometric.Active)
+            {
+                matr = matr * Matrix4D.RotX(ISOMETRIC_X) * Matrix4D.RotY(ISOMETRIC_Y) * Matrix4D.RotZ(ISOMETRIC_Z);
+            }
+            else
+            {
+                matr = matr * Matrix4D.RotX(alpha) * Matrix4D.RotY(beta) * Matrix4D.RotZ(gamma);
+            }
+            Vector4D start = new Vector4D();
+            Vector4D ox = new Vector4D(1, 0, 0, 0) * matr * AXIS_SIZE;
+            Vector4D oy = new Vector4D(0, 1, 0, 0) * matr * AXIS_SIZE;
+            Vector4D oz = new Vector4D(0, 0, 1, 0) * matr * AXIS_SIZE;
+            Cairo.Color oxColor = new Cairo.Color(1, 0, 0);
+            Cairo.Color oyColor = new Cairo.Color(0, 1, 0);
+            Cairo.Color ozColor = new Cairo.Color(0, 0, 1);
+            DrawVector(cr, shift + start.Proj(), shift + ox.Proj(), oxColor);
+            DrawVector(cr, shift + start.Proj(), shift + oy.Proj(), oyColor);
+            DrawVector(cr, shift + start.Proj(), shift + oz.Proj(), ozColor);
+        }
+
         private void DrawNormalVectors(Context cr, Prism prism)
         {
             for (int i = 0; i < prism._polygons.Count; ++i)
             {
                 if (!ignoreInvisible || prism._polygons[i].Visible()) {
                     cr.SetSourceColor(DEFAULT_NORMAL_COLOR);
-                    DrawNormal(cr, prism._polygons[i], windowCenter);
+                    DrawNormal(cr, prism._polygons[i]);
                 }
             }
         }
 
-        // todo сделать нормальные функции
-        private void FillPolygon(Context cr, int id)
+        private void FillPolygon(Context cr, int id, Cairo.Color col)
         {
             Polygon poly = prism._polygons[id];
-            Vector4D a = poly._data[0];
+            Vector4D vertex = poly._data[0];
             cr.NewPath();
-            cr.MoveTo(a.X + windowCenter.X, a.Y + windowCenter.Y);
+            cr.LineWidth = 1;
+            cr.SetSourceRGB(0, 0, 0);
+            cr.MoveTo(vertex.X + windowCenter.X, vertex.Y + windowCenter.Y);
             for (int i = 1; i < poly._data.Count; ++i)
             {
-                a = poly._data[i];
-                cr.LineTo(a.X + windowCenter.X, a.Y + windowCenter.Y);
+                vertex = poly._data[i];
+                cr.LineTo(vertex.X + windowCenter.X, vertex.Y + windowCenter.Y);
             }
             cr.ClosePath();
-            cr.Save();
-            cr.SetSourceColor(polygonColors[id]);
-            cr.FillPreserve();
-            cr.Restore();
+            cr.SetSourceColor(col);
+            cr.Fill();
         }
 
         private void DrawPolygon(Context cr, int id, Cairo.Color col)
         {
-            cr.SetSourceColor(col);
             Polygon poly = prism._polygons[id];
             for (int i = 0; i < poly._data.Count; ++i)
             {
                 Vector4D a = poly._data[i];
                 Vector4D b = poly._data[(i + 1) % poly._data.Count];
-                Vector2D projA = new Vector2D(a.X, a.Y);
-                Vector2D projB = new Vector2D(b.X, b.Y);
-                DrawLine(cr, windowCenter + projA, windowCenter + projB, true);
+                DrawLine(cr, windowCenter + a.Proj(), windowCenter + b.Proj(), col);
             }
         }
 
-        private static void DrawNormal(Context cr, Polygon poly, Vector2D shift)
+        private void DrawNormal(Context cr, Polygon poly)
         {
             Vector4D polyCenter = (poly._data[0] + poly._data[1] + poly._data[2]) / 3.0;
-
-            Vector4D a = polyCenter;
-            Vector4D b = polyCenter + NORMAL_VECTOR_SIZE * poly.NormalVector() / poly.NormalVector().Len();
-
-            Vector2D projA = new Vector2D(a.X, a.Y);
-            Vector2D projB = new Vector2D(b.X, b.Y);
-            DrawLine(cr, shift + projA, shift + projB, true);
+            Vector4D aN = polyCenter;
+            Vector4D bN = aN + NORMAL_VECTOR_SIZE * poly.NormalVector() / poly.NormalVector().Len();
+            DrawVector(cr, windowCenter + aN.Proj(), windowCenter + bN.Proj(), DEFAULT_NORMAL_COLOR);
         }
 
-        private static void DrawLine(Context cr, Vector2D point1, Vector2D point2, bool stroke)
+        private static void DrawVector(Context cr, Vector2D point1, Vector2D point2, Cairo.Color col)
         {
+            cr.LineWidth = 3;
+            DrawLine(cr, (2.0 * point1 + 8.0 * point2) / 10.0, (point1 + 9.0 * point2) / 10.0, col);
+            cr.LineWidth = 2;
+            DrawLine(cr, (point1 + 9.0 * point2) / 10.0, point2, col);
+            cr.LineWidth = 1;
+            DrawLine(cr, point1, (2.0 * point1 + 8.0 * point2) / 10.0, col);
+        }
+
+        private static void DrawLine(Context cr, Vector2D point1, Vector2D point2, Cairo.Color col)
+        {
+            cr.SetSourceColor(col);
             cr.MoveTo(point1.X, point1.Y);
             cr.LineTo(point2.X, point2.Y);
-            if (stroke)
-            {
-                cr.Stroke();
-            }
+            cr.Stroke();
         }
     }
 }

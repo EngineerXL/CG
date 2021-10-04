@@ -46,6 +46,11 @@ namespace lab2
         {
             return new Vector2D(vec.X * lambda, vec.Y * lambda);
 		}
+
+        public static Vector2D operator / (Vector2D vec, double lambda)
+        {
+            return new Vector2D(vec.X / lambda, vec.Y / lambda);
+		}
     }
 
     public class Vector4D
@@ -103,6 +108,11 @@ namespace lab2
         {
             return new Vector4D(vec.X * lambda, vec.Y * lambda, vec.Z * lambda, vec.W * lambda);
 		}
+
+        public Vector2D Proj()
+        {
+            return new Vector2D(X, Y);
+        }
 
         public static double Dot(Vector4D a, Vector4D b)
         {
@@ -367,6 +377,7 @@ namespace lab2
 
     public static class Misc
     {
+        public const double EPS = 1e-6;
         public const double INF = 1e18;
         public const double PI_DEG = 180;
         public const double MAX_DEG = 360;
