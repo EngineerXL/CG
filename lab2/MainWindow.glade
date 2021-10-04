@@ -124,7 +124,7 @@
   </object>
   <object class="GtkAdjustment" id="_adjustmentN">
     <property name="lower">3</property>
-    <property name="upper">128</property>
+    <property name="upper">256</property>
     <property name="value">8</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>

@@ -412,14 +412,14 @@ namespace lab2
         private void FillPolygon(Context cr, int id, Cairo.Color col)
         {
             Polygon poly = prism._polygons[id];
-            Vector4D vertex = poly._data[0];
+            Vector4D vertex = poly[0];
             cr.NewPath();
             cr.LineWidth = 1;
             cr.SetSourceRGB(0, 0, 0);
             cr.MoveTo(vertex.X + windowCenter.X, vertex.Y + windowCenter.Y);
-            for (int i = 1; i < poly._data.Count; ++i)
+            for (int i = 1; i < poly.Count; ++i)
             {
-                vertex = poly._data[i];
+                vertex = poly[i];
                 cr.LineTo(vertex.X + windowCenter.X, vertex.Y + windowCenter.Y);
             }
             cr.ClosePath();
@@ -430,19 +430,24 @@ namespace lab2
         private void DrawPolygon(Context cr, int id, Cairo.Color col)
         {
             Polygon poly = prism._polygons[id];
-            for (int i = 0; i < poly._data.Count; ++i)
+            for (int i = 0; i < poly.Count; ++i)
             {
-                Vector4D a = poly._data[i];
-                Vector4D b = poly._data[(i + 1) % poly._data.Count];
+                Vector4D a = poly[i];
+                Vector4D b = poly[(i + 1) % poly.Count];
                 DrawLine(cr, windowCenter + a.Proj(), windowCenter + b.Proj(), col);
             }
         }
 
         private void DrawNormal(Context cr, Polygon poly)
         {
-            Vector4D polyCenter = (poly._data[0] + poly._data[1] + poly._data[2]) / 3.0;
+            Vector4D polyCenter = (poly[0] + poly[1] + poly[2]) / 3.0;
             Vector4D aN = polyCenter;
-            Vector4D bN = aN + NORMAL_VECTOR_SIZE * poly.NormalVector() / poly.NormalVector().Len();
+            Vector4D N = poly.NormalVector();
+            if (N.IsNull())
+            {
+                return;
+            }
+            Vector4D bN = aN + NORMAL_VECTOR_SIZE * N / N.Len();
             DrawVector(cr, windowCenter + aN.Proj(), windowCenter + bN.Proj(), DEFAULT_NORMAL_COLOR);
         }
 

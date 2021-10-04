@@ -76,12 +76,25 @@ namespace lab2
             W = w;
         }
 
+        public void Assign(Vector4D another)
+        {
+            X = another.X;
+            Y = another.Y;
+            Z = another.Z;
+            W = another.W;
+        }
+
         public Vector4D(Vector4D another)
         {
             X = another.X;
             Y = another.Y;
             Z = another.Z;
             W = another.W;
+        }
+
+        public bool IsNull()
+        {
+            return Math.Abs(X) < Misc.EPS && Math.Abs(Y) < Misc.EPS && Math.Abs(Z) < Misc.EPS;
         }
 
         public static Vector4D operator + (Vector4D lhs, Vector4D rhs)
@@ -151,7 +164,7 @@ namespace lab2
             }
         }
 
-        public Matrix4D(Matrix4D another) : base()
+        public Matrix4D(Matrix4D another) : this()
         {
             for (int i = 0; i < DIM; ++i)
             {

@@ -6,15 +6,16 @@ namespace lab2
     public class Polygon
     {
         public List<Vector4D> _data;
+        public int Count;
 
         public Polygon()
         {
-            _data = new List<Vector4D>(3);
+            Count = 3;
+            _data = new List<Vector4D>(Count);
         }
 
-        public Polygon(Vector4D a, Vector4D b, Vector4D c) : base()
+        public Polygon(Vector4D a, Vector4D b, Vector4D c) : this()
         {
-            _data = new List<Vector4D>(3);
             _data.Add(a);
             _data.Add(b);
             _data.Add(c);
@@ -64,7 +65,7 @@ namespace lab2
 
         public VertexPolygonsPair(Vector4D vertex)
         {
-            First = new Vector4D(vertex);
+            First = vertex;
             Second = new List<int>();
         }
     }
@@ -153,11 +154,7 @@ namespace lab2
         public void Transform(Matrix4D matr)
         {
             for (int i = 0; i < _vertices.Count; ++i) {
-                _vertices[i].First = _vertices[i].First * matr;
-            }
-            foreach (Polygon poly in _polygons)
-            {
-                poly.TransformPolygon(matr);
+                _vertices[i].First.Assign(_vertices[i].First * matr);
             }
         }
     }
