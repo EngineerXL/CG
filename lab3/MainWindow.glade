@@ -155,21 +155,21 @@
   <object class="GtkAdjustment" id="_adjustmentLightX">
     <property name="lower">-1e+18</property>
     <property name="upper">1e+18</property>
-    <property name="value">100</property>
+    <property name="value">700</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="_adjustmentLightY">
     <property name="lower">-1e+18</property>
     <property name="upper">1e+18</property>
-    <property name="value">-100</property>
+    <property name="value">-700</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="_adjustmentLightZ">
     <property name="lower">-1e+18</property>
     <property name="upper">1e+18</property>
-    <property name="value">-250</property>
+    <property name="value">700</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -577,6 +577,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
+                    <property name="active">True</property>
                     <property name="draw_indicator">True</property>
                   </object>
                   <packing>
@@ -1235,46 +1236,46 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSpinButton">
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="adjustment">_adjustmentLightR</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Cord</property>
                   </object>
                   <packing>
-                    <property name="left_attach">3</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="adjustment">_adjustmentLightG</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">3</property>
-                    <property name="top_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="adjustment">_adjustmentLightB</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">3</property>
-                    <property name="top_attach">3</property>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">0</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Source</property>
+                    <property name="label" translatable="yes">Colour</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Ambient intensity</property>
                   </object>
                   <packing>
                     <property name="left_attach">3</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Light intensity</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">4</property>
                     <property name="top_attach">0</property>
                   </packing>
                 </child>
@@ -1312,39 +1313,6 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Colour</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Ambient intensity</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">4</property>
-                    <property name="top_attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Light intensity</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">5</property>
-                    <property name="top_attach">0</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkSpinButton">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -1352,19 +1320,7 @@
                     <property name="digits">2</property>
                   </object>
                   <packing>
-                    <property name="left_attach">4</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="adjustment">_adjustmentIlR</property>
-                    <property name="digits">2</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">5</property>
+                    <property name="left_attach">3</property>
                     <property name="top_attach">1</property>
                   </packing>
                 </child>
@@ -1376,7 +1332,7 @@
                     <property name="digits">2</property>
                   </object>
                   <packing>
-                    <property name="left_attach">4</property>
+                    <property name="left_attach">3</property>
                     <property name="top_attach">2</property>
                   </packing>
                 </child>
@@ -1388,8 +1344,20 @@
                     <property name="digits">2</property>
                   </object>
                   <packing>
-                    <property name="left_attach">4</property>
+                    <property name="left_attach">3</property>
                     <property name="top_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="adjustment">_adjustmentIlR</property>
+                    <property name="digits">2</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">4</property>
+                    <property name="top_attach">1</property>
                   </packing>
                 </child>
                 <child>
@@ -1400,7 +1368,7 @@
                     <property name="digits">2</property>
                   </object>
                   <packing>
-                    <property name="left_attach">5</property>
+                    <property name="left_attach">4</property>
                     <property name="top_attach">2</property>
                   </packing>
                 </child>
@@ -1412,19 +1380,58 @@
                     <property name="digits">2</property>
                   </object>
                   <packing>
-                    <property name="left_attach">5</property>
+                    <property name="left_attach">4</property>
                     <property name="top_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="_checkButtonDrawRays">
+                    <property name="label" translatable="yes">Draw light rays</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="draw_indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">5</property>
+                    <property name="top_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="_checkButtonDrawSource">
+                    <property name="label" translatable="yes">Draw light source</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="draw_indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">5</property>
+                    <property name="top_attach">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Cord</property>
+                    <property name="label" translatable="yes">Additional parameters</property>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
+                    <property name="left_attach">5</property>
                     <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="_checkButtonAutoScaleLight">
+                    <property name="label" translatable="yes">Autoscale with light source</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="draw_indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">5</property>
+                    <property name="top_attach">3</property>
                   </packing>
                 </child>
               </object>

@@ -6,12 +6,14 @@ namespace lab3
     public class Polygon
     {
         public List<Vector4D> _data;
+        public List<Vector4D> _normals;
         public int Count;
 
         public Polygon()
         {
             Count = 3;
             _data = new List<Vector4D>(Count);
+            _normals = new List<Vector4D>(Count);
         }
 
         public Polygon(Vector4D a, Vector4D b, Vector4D c) : this()
@@ -76,6 +78,7 @@ namespace lab3
 
         public List<VertexPolygonsPair> globalVertices;
         public List<VertexPolygonsPair> _vertices;
+        public List<Vector4D> _normals;
         public List<Polygon> _polygons;
 
         private int _nPhi;
@@ -173,6 +176,71 @@ namespace lab3
                 Vector4D b = _dataVert[0][(j + 1) % _nPhi];
                 _polygons.Add(new Polygon(centerHigh, a, b));
             }
+        }
+
+        public void GenVertN()
+        {
+            List<Vector4D> polygonNormals = new List<Vector4D>();
+            foreach (Polygon poly in _polygons)
+            {
+                polygonNormals.Add(poly.NormalVector());
+                for (int i = 0; i < poly.Count; ++i)
+                {
+                    poly._normals.Add(new Vector4D());
+                }
+            }
+            _normals = new List<Vector4D>();
+            foreach (VertexPolygonsPair item in _vertices)
+            {
+                Vector4D vec = new Vector4D();
+                foreach (int polyId in item.Second)
+                {
+                    vec = vec + _polygons[polyId].NormalVector();
+                }
+                vec = vec / item.Second.Count;
+                _normals.Add(vec);
+                foreach (int polyId in item.Second)
+                {
+                    Polygon poly = _polygons[polyId];
+                    for (int i = 0; i < poly.Count; ++i)
+                    {
+                        if (item.First == poly[i])
+                        {
+                            poly._normals[i] = vec;
+                        }
+                    }
+                }
+            }
+
+            // Console.WriteLine("GenVertN");
+            // for (int i = 0; i < _vertices.Count; ++i)
+            // {
+            //     VertexPolygonsPair curPair = _vertices[i];
+            //     curPair.First.N.Assign(new Vector4D());
+            // }
+            // foreach (Polygon poly in _polygons)
+            // {
+            //     Vector4D N = poly.NormalVector();
+            //     Console.WriteLine("normal");
+            //     Console.WriteLine(N.X.ToString() + ", " + N.Y.ToString() + ", " + N.Z.ToString());
+            //     for (int i = 0; i < poly._data.Count; ++i)
+            //     {
+            //         Console.WriteLine("summ");
+            //         Console.WriteLine(poly._data[i].N.X.ToString() + ", " + poly._data[i].N.Y.ToString() + ", " + poly._data[i].N.Z.ToString());
+            //         poly._data[i].N = poly._data[i].N + N;
+            //         Console.WriteLine("summed");
+            //         Console.WriteLine(poly._data[i].N.X.ToString() + ", " + poly._data[i].N.Y.ToString() + ", " + poly._data[i].N.Z.ToString());
+            //     }
+            // }
+            // for (int i = 0; i < _vertices.Count; ++i)
+            // {
+            //     VertexPolygonsPair curPair = _vertices[i];
+            //     Console.WriteLine("Vertex:");
+            //     Console.WriteLine(curPair.First.vertex.X.ToString() + ", " + curPair.First.vertex.Y.ToString() + ", " + curPair.First.vertex.Z.ToString());
+            //     Console.WriteLine(curPair.First.N.X.ToString() + ", " + curPair.First.N.Y.ToString() + ", " + curPair.First.N.Z.ToString());
+            //     curPair.First.N = curPair.First.N / (double) curPair.Second.Count;
+            //     curPair.First.N.Normalize();
+            // }
         }
 
         private void GenVertexPolygons()

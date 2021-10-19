@@ -310,8 +310,8 @@ namespace lab3
         {
             Matrix4D res = new Matrix4D();
             res[1, 1] = Math.Cos(phi);
-            res[1, 2] = Math.Sin(phi);
-            res[2, 1] = -Math.Sin(phi);
+            res[1, 2] = -Math.Sin(phi);
+            res[2, 1] = Math.Sin(phi);
             res[2, 2] = Math.Cos(phi);
             return res;
         }
@@ -330,8 +330,8 @@ namespace lab3
         {
             Matrix4D res = new Matrix4D();
             res[0, 0] = Math.Cos(phi);
-            res[0, 1] = Math.Sin(phi);
-            res[1, 0] = -Math.Sin(phi);
+            res[0, 1] = -Math.Sin(phi);
+            res[1, 0] = Math.Sin(phi);
             res[1, 1] = Math.Cos(phi);
             return res;
         }

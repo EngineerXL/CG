@@ -68,10 +68,11 @@ namespace lab3
         [UI] private RadioButton _radioButtonProjY = null;
         [UI] private RadioButton _radioButtonProjZ = null;
         [UI] private RadioButton _radioButtonIsometric = null;
-        private readonly double ISOMETRIC_X = Misc.ToRadians(-35);
+        private readonly double ISOMETRIC_X = Misc.ToRadians(35);
         private readonly double ISOMETRIC_Y = Misc.ToRadians(-45);
         private readonly double ISOMETRIC_Z = Misc.ToRadians(0);
         [UI] private CheckButton _checkButtonAutoScale = null;
+        private Matrix4D rescaleMatr = new Matrix4D();
 
         /* Figure parameters */
         [UI] private Adjustment _adjustmentVerticalN = null;
@@ -116,12 +117,7 @@ namespace lab3
         [UI] private Adjustment _adjustmentLightX = null;
         [UI] private Adjustment _adjustmentLightY = null;
         [UI] private Adjustment _adjustmentLightZ = null;
-        Vector4D lightSource = new Vector4D();
-
-        [UI] private Adjustment _adjustmentLightR = null;
-        [UI] private Adjustment _adjustmentLightG = null;
-        [UI] private Adjustment _adjustmentLightB = null;
-        Misc.Colour lightSourceColour = new Misc.Colour();
+        private Vector4D lightSource = new Vector4D();
 
         [UI] private Adjustment _adjustmentIaR = null;
         [UI] private Adjustment _adjustmentIaG = null;
@@ -132,6 +128,13 @@ namespace lab3
         [UI] private Adjustment _adjustmentIlG = null;
         [UI] private Adjustment _adjustmentIlB = null;
         private Misc.Colour il = null;
+
+        [UI] private CheckButton _checkButtonDrawSource = null;
+        private const double SOURCE_SIZE = 5;
+        [UI] private CheckButton _checkButtonDrawRays = null;
+        private const double RAY_VECTOR_SIZE = 50;
+        private readonly Misc.Colour DEFAULT_LIGHT_RAY_COLOUR = new Misc.Colour(1, 1, 0);
+        [UI] private CheckButton _checkButtonAutoScaleLight = null;
 
         /* Result matrix */
         [UI] private Adjustment _adjustmentMatrix00 = null;
@@ -240,16 +243,17 @@ namespace lab3
             _adjustmentLightY.ValueChanged += Redraw;
             _adjustmentLightZ.ValueChanged += Redraw;
 
-            _adjustmentLightR.ValueChanged += Redraw;
-            _adjustmentLightG.ValueChanged += Redraw;
-            _adjustmentLightB.ValueChanged += Redraw;
-
             _adjustmentIaR.ValueChanged += Redraw;
             _adjustmentIaG.ValueChanged += Redraw;
             _adjustmentIaB.ValueChanged += Redraw;
             _adjustmentIlR.ValueChanged += Redraw;
             _adjustmentIlG.ValueChanged += Redraw;
             _adjustmentIlB.ValueChanged += Redraw;
+
+            _checkButtonDrawSource.Toggled += Redraw;
+            _checkButtonDrawRays.Toggled += Redraw;
+            _checkButtonAutoScaleLight.Toggled += Redraw;
+
         }
 
         private void GetWindowData()
@@ -293,7 +297,6 @@ namespace lab3
         private void GetLightSourceData()
         {
             lightSource = new Vector4D(_adjustmentLightX.Value, _adjustmentLightY.Value, _adjustmentLightZ.Value, 0);
-            lightSourceColour = new Misc.Colour(_adjustmentLightR.Value, _adjustmentLightG.Value, _adjustmentLightB.Value) / Misc.MAX_RGB;
             ia = new Misc.Colour(_adjustmentIaR.Value, _adjustmentIaG.Value, _adjustmentIaB.Value);
             il = new Misc.Colour(_adjustmentIlR.Value, _adjustmentIlG.Value, _adjustmentIlB.Value);
         }
@@ -352,15 +355,14 @@ namespace lab3
             pointerPos = new Vector2D(args.Event.X, args.Event.Y);
         }
 
-        /* ToDo нормальное вращение */
         private void DrawingArea_MotionNotifyEvent(object sender, MotionNotifyEventArgs args)
         {
             if (mouseMotionFlag)
             {
                 Vector2D pointerPosNext = new Vector2D(args.Event.X, args.Event.Y);
-                Vector2D delta = pointerPosNext - pointerPos;
-                _adjustmentAlpha.Value = _adjustmentAlpha.Value + ROTATION_SPEED * delta.Y;
-                _adjustmentBeta.Value = _adjustmentBeta.Value + ROTATION_SPEED * delta.X;
+                Vector2D delta = ROTATION_SPEED * (pointerPosNext - pointerPos);
+                _adjustmentAlpha.Value = _adjustmentAlpha.Value - delta.Y;
+                _adjustmentBeta.Value = _adjustmentBeta.Value + delta.X;
                 pointerPos = pointerPosNext;
                 _drawingArea.QueueDraw();
             }
@@ -373,6 +375,7 @@ namespace lab3
 
         private void DrawingArea_DrawnEvent(object sender, DrawnArgs args)
         {
+
             GetWindowData();
             Context cr = args.Cr;
             cr.Antialias = Antialias.Subpixel;
@@ -397,7 +400,24 @@ namespace lab3
             {
                 DrawNormalVectors(cr);
             }
+            if (_checkButtonDrawRays.Active)
+            {
+                DrawRays(cr);
+            }
+            if (_checkButtonDrawSource.Active)
+            {
+                DrawSource(cr);
+            }
             DrawAxises(cr, AXIS_POS * (new Vector2D(width, height)));
+
+            /* Это ненужно */
+            Vector2D a = new Vector2D(100, 100);
+            Vector2D b = new Vector2D(100, 200);
+            Vector2D c = new Vector2D(200, 200);
+            Vector2D d = new Vector2D(200, 100);
+
+            DrawGradient(cr, a, new Misc.Colour(1, 1, 0), b, new Misc.Colour(0, 1, 1), c, new Misc.Colour(1, 0, 1));
+            DrawGradient(cr, c, new Misc.Colour(1, 0, 1), d, new Misc.Colour(0, 1, 1), a, new Misc.Colour(1, 1, 0));
         }
 
         private void GenFigure()
@@ -427,7 +447,6 @@ namespace lab3
             }
         }
 
-        /* ToDo нормальное вращение */
         private void GenMatrix()
         {
             GetMovementData();
@@ -489,8 +508,16 @@ namespace lab3
                 maxCord = Math.Max(maxCord, Math.Abs(item.First.Y));
                 maxCord = Math.Max(maxCord, Math.Abs(item.First.Z));
             }
+            if (_checkButtonAutoScaleLight.Active && _checkButtonDrawSource.Active)
+            {
+                maxCord = Math.Max(maxCord, Math.Abs(lightSource.X - SOURCE_SIZE));
+                maxCord = Math.Max(maxCord, Math.Abs(lightSource.Y - SOURCE_SIZE));
+                maxCord = Math.Max(maxCord, Math.Abs(lightSource.X + SOURCE_SIZE));
+                maxCord = Math.Max(maxCord, Math.Abs(lightSource.Y + SOURCE_SIZE));
+                maxCord = Math.Max(maxCord, Math.Abs(lightSource.Z));
+            }
             double rescaleCoef = Math.Min(width / (2 * maxCord), height / (2 * maxCord));
-            Matrix4D rescaleMatr = new Matrix4D();
+            rescaleMatr = new Matrix4D();
             rescaleMatr = rescaleMatr * Matrix4D.ScaleX(rescaleCoef) * Matrix4D.ScaleY(rescaleCoef) * Matrix4D.ScaleZ(rescaleCoef);
             fig.Transform(matr * rescaleMatr);
         }
@@ -521,38 +548,49 @@ namespace lab3
 
         private Misc.Colour GenShadePoint(Misc.Colour col, Vector4D point, Vector4D N)
         {
-            Vector4D L = (lightSource - point);
-            Vector4D R = INF_VEC - point;
-            Misc.Colour ambientIntensity = ia * ka;
-            double dist = 0.001 * L.Len();
             N.Normalize();
+            Vector4D L = lightSource - point;
+            double dist = 0.001 * L.Len();
             L.Normalize();
+            Vector4D R = 2 * N * Vector4D.Dot(L, N) - L;
             R.Normalize();
+            Vector4D S = INF_VEC - point;
+            S.Normalize();
+
+            Misc.Colour ambientIntensity = ka * ia;
             Misc.Colour diffuseIntensity = kd * il * Vector4D.Dot(L, N);
+            Misc.Colour specularIntensity = ks * il * Math.Pow(Vector4D.Dot(R, S), SHADING_COEF_P);
             if (Vector4D.Dot(L, N) < Misc.EPS)
             {
                 diffuseIntensity = new Misc.Colour();
+                specularIntensity = new Misc.Colour();
             }
-            double fallAngle = Math.Acos(Vector4D.Dot(N, L));
-            double visAngle = Math.Acos(Vector4D.Dot(L, R));
-            double ksi = visAngle - 2 * visAngle;
-            Misc.Colour specularIntensity = ks * il * Math.Pow(Math.Cos(ksi), SHADING_COEF_P);
-            if (Math.Cos(ksi) < Misc.EPS)
+            if (Vector4D.Dot(R, S) < Misc.EPS)
             {
                 specularIntensity = new Misc.Colour();
             }
-            // return col * lightSourceColour * ambientIntensity;
-            return col * lightSourceColour * (ambientIntensity + (diffuseIntensity + specularIntensity) / (dist + SHADING_COEF_K));
+            return col * (ambientIntensity + (diffuseIntensity + specularIntensity) / (dist + SHADING_COEF_K));
         }
 
         private void DrawFigure(Context cr)
         {
+            if (_radioButtonGouraud.Active)
+            {
+                fig.GenVertN();
+            }
             for (int i = 0; i < fig._polygons.Count; ++i)
             {
                 if (!_checkButtonIgnoreInvisible.Active || fig._polygons[i].Visible()) {
                     if (_checkButtonFillPolygons.Active)
                     {
-                        FillPolygon(cr, i);
+                        if (_radioButtonGouraud.Active)
+                        {
+                            GouraudPolygon(cr, i);
+                        }
+                        else
+                        {
+                            FillPolygon(cr, fig._polygons[i], polygonShade[i]);
+                        }
                         if (_checkButtonDrawFrame.Active)
                         {
                             DrawPolygon(cr, i, DEFAULT_LINE_COLOUR_FILL);
@@ -588,22 +626,64 @@ namespace lab3
 
         private void DrawNormalVectors(Context cr)
         {
-            for (int i = 0; i < fig._polygons.Count; ++i)
+            foreach (Polygon poly in fig._polygons)
             {
-                if (!_checkButtonIgnoreInvisible.Active || fig._polygons[i].Visible()) {
-                    cr.SetSourceColor(DEFAULT_NORMAL_COLOR.ToCairo());
-                    DrawNormal(cr, fig._polygons[i]);
+                if (!_checkButtonIgnoreInvisible.Active || poly.Visible()) {
+                    DrawNormal(cr, poly);
                 }
             }
         }
 
-        private void FillPolygon(Context cr, int id)
+        private void DrawSource(Context cr)
         {
+            Vector4D lightSourceScaled = lightSource * rescaleMatr;
+            Vector4D a = new Vector4D(lightSourceScaled);
+            a.X = a.X - SOURCE_SIZE;
+            a.Y = a.Y - SOURCE_SIZE;
+
+            Vector4D b = new Vector4D(lightSourceScaled);
+            b.X = b.X - SOURCE_SIZE;
+            b.Y = b.Y + SOURCE_SIZE;
+
+            Vector4D c = new Vector4D(lightSourceScaled);
+            c.X = c.X + SOURCE_SIZE;
+            c.Y = c.Y + SOURCE_SIZE;
+
+            Vector4D d = new Vector4D(lightSourceScaled);
+            d.X = d.X + SOURCE_SIZE;
+            d.Y = d.Y - SOURCE_SIZE;
+
+            Polygon low = new Polygon(a, b, c);
+            Polygon high = new Polygon(c, d, a);
+            FillPolygon(cr, low, il);
+            FillPolygon(cr, high, il);
+        }
+
+        /* ToDo вытравить жуков */
+        private void GouraudPolygon(Context cr, int id)
+        {
+            List<Vector4D> polyVertices = new List<Vector4D>();
+            List<Misc.Colour> vertColours = new List<Misc.Colour>();
+            // for (int i = 0; i < fig._polygons[id].Count; ++i)
+            // {
+            //     VertexN vertN  = fig._polygons[id]._data[i];
+            //     polyVertices.Add(vertN.vertex);
+            //     vertColours.Add(GenShadePoint(polygonColors[id], vertN.vertex, vertN.N));
+            // }
             Polygon poly = fig._polygons[id];
+            for (int i = 0; i < poly.Count; ++i)
+            {
+                polyVertices.Add(poly[i]);
+                vertColours.Add(GenShadePoint(polygonColors[id], poly[i], poly._normals[i]));
+                // DrawVector(cr, poly[i].Proj() + windowCenter, (poly[i] + 50 * poly._normals[i]).Proj() + windowCenter, DEFAULT_NORMAL_COLOR);
+            }
+            DrawGradient(cr, windowCenter + polyVertices[0].Proj(), vertColours[0], windowCenter + polyVertices[1].Proj(), vertColours[1], windowCenter + polyVertices[2].Proj(), vertColours[2]);
+        }
+
+        private void FillPolygon(Context cr, Polygon poly, Misc.Colour col)
+        {
             Vector4D vertex = poly[0];
             cr.NewPath();
-            cr.LineWidth = 1;
-            cr.SetSourceRGB(0, 0, 0);
             cr.MoveTo(vertex.X + windowCenter.X, vertex.Y + windowCenter.Y);
             for (int i = 1; i < poly.Count; ++i)
             {
@@ -611,7 +691,8 @@ namespace lab3
                 cr.LineTo(vertex.X + windowCenter.X, vertex.Y + windowCenter.Y);
             }
             cr.ClosePath();
-            cr.SetSourceColor(polygonShade[id].ToCairo());
+            cr.SetSourceColor(col.ToCairo());
+            cr.StrokePreserve();
             cr.Fill();
         }
 
@@ -635,8 +716,89 @@ namespace lab3
             {
                 return;
             }
-            Vector4D bN = aN + NORMAL_VECTOR_SIZE * N / N.Len();
+            N.Normalize();
+            Vector4D bN = aN + NORMAL_VECTOR_SIZE * N;
             DrawVector(cr, windowCenter + aN.Proj(), windowCenter + bN.Proj(), DEFAULT_NORMAL_COLOR);
+        }
+
+        private void DrawRays(Context cr)
+        {
+            foreach (Polygon poly in fig._polygons)
+            {
+                if (!_checkButtonIgnoreInvisible.Active || poly.Visible()) {
+                    DrawRayVectors(cr, poly);
+                }
+            }
+        }
+
+        /* ToDo а можно ли проще? Или сделать функции для L, S? */
+        private void DrawRayVectors(Context cr, Polygon poly)
+        {
+            Vector4D polyCenter = poly.GetCenter();
+            Vector4D aN = polyCenter;
+            Vector4D N = poly.NormalVector();
+            if (N.IsNull())
+            {
+                return;
+            }
+            N.Normalize();
+            Vector4D L = lightSource - polyCenter;
+            L.Normalize();
+            if (Vector4D.Dot(L, N) > -Misc.EPS)
+            {
+                Vector4D lN = aN + RAY_VECTOR_SIZE * L;
+                DrawVector(cr, windowCenter + lN.Proj(), windowCenter + aN.Proj(), DEFAULT_LIGHT_RAY_COLOUR);
+
+                Vector4D R = 2 * N * Vector4D.Dot(L, N) - L;
+                R.Normalize();
+                Vector4D rN = aN + RAY_VECTOR_SIZE * R;
+                DrawVector(cr, windowCenter + aN.Proj(), windowCenter + rN.Proj(), DEFAULT_LIGHT_RAY_COLOUR);
+            }
+        }
+
+        /* ToDo полоски... */
+        private void DrawGradient(Context cr, Vector2D point1, Misc.Colour col1, Vector2D point2, Misc.Colour col2, Vector2D point3, Misc.Colour col3)
+        {
+            cr.MoveTo(point1.X, point1.Y);
+            cr.LineTo(point2.X, point2.Y);
+            cr.LineTo(point3.X, point3.Y);
+            cr.ClosePath();
+            var path = cr.CopyPath();
+            RadialGradient pattern;
+            Matrix transform, origins = cr.Matrix;//.Clone() as Matrix;
+
+            // Каждый радиальный градиент изначально располагается в точке (0,0) с радиусом равным 1.
+            // При помощи аффинных преобразований точки (0;0), (2/√3;0) и (1/√3;1) трансформируется в
+            // вершины исходного треугольника. Так как расстояния между последними двумя точками до
+            // центра градиента равно 1.1547, что больше 1, то они оказываются вне преобразования.
+            void Composite(Misc.Colour ci, Vector2D pi, Vector2D pj, Vector2D pk)
+            {
+                pattern = new RadialGradient(0, 0, 0, 0, 0, 1);
+                pattern.AddColorStopRgb(0, ci.ToCairo());
+                pattern.AddColorStopRgb(1, new Cairo.Color(0, 0, 0));
+                transform = new Matrix(
+                        /* [1,1] sx */  (pj.X - pi.X) * .5 * Math.Sqrt(3),
+                        /* [2,1]    */  (pj.Y - pi.Y) * .5 * Math.Sqrt(3),
+                        /* [1,2]    */  (pk.X - pi.X) - .5 * (pj.X - pi.X),
+                        /* [2,2] sy */  (pk.Y - pi.Y) - .5 * (pj.Y - pi.Y),
+                        /* [1,3] tx */   pi.X,
+                        /* [2,3] ty */   pi.Y
+                );
+                cr.Transform(transform);
+                cr.SetSource(pattern);
+                cr.Fill();
+                pattern.Dispose();
+                cr.Matrix = origins;//.Clone() as Matrix;
+            }
+
+            Composite(col1, point1, point2, point3);
+            cr.AppendPath(path);
+            cr.Operator = Operator.Add;
+            Composite(col2, point2, point1, point3);
+            cr.AppendPath(path);
+            Composite(col3, point3, point1, point2);
+            cr.Operator = Operator.Over;
+            path.Dispose();
         }
 
         private static void DrawVector(Context cr, Vector2D point1, Vector2D point2, Misc.Colour col)
