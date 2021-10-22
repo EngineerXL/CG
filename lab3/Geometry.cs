@@ -50,6 +50,16 @@ namespace lab3
         {
             return new Vector2D(vec.X / lambda, vec.Y / lambda);
 		}
+
+        public double Len()
+        {
+            return Math.Sqrt(X * X + Y * Y);
+        }
+
+        public static bool ApproxEqual(Vector2D a, Vector2D b)
+        {
+            return Math.Abs(a.X - b.X) < Misc.EPS && Math.Abs(a.Y - b.Y) < Misc.EPS;
+        }
     }
 
     public class Vector4D
@@ -120,6 +130,16 @@ namespace lab3
         {
             return new Vector4D(vec.X * lambda, vec.Y * lambda, vec.Z * lambda, vec.W * lambda);
 		}
+
+        public override String ToString()
+        {
+            return new String("{" + X.ToString() + ", " + Y.ToString() + ", " + Z.ToString() + "}");
+        }
+
+        public static bool ApproxEqual(Vector4D a, Vector4D b)
+        {
+            return Math.Abs(a.X - b.X) < Misc.EPS && Math.Abs(a.Y - b.Y) < Misc.EPS && Math.Abs(a.Z - b.Z) < Misc.EPS;
+        }
 
         public Vector2D Proj()
         {

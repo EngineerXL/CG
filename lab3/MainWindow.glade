@@ -155,21 +155,20 @@
   <object class="GtkAdjustment" id="_adjustmentLightX">
     <property name="lower">-1e+18</property>
     <property name="upper">1e+18</property>
-    <property name="value">700</property>
+    <property name="value">-1000</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="_adjustmentLightY">
     <property name="lower">-1e+18</property>
     <property name="upper">1e+18</property>
-    <property name="value">-700</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAdjustment" id="_adjustmentLightZ">
     <property name="lower">-1e+18</property>
     <property name="upper">1e+18</property>
-    <property name="value">700</property>
+    <property name="value">-1000</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>

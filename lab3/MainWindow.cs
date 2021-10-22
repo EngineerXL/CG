@@ -31,6 +31,7 @@ namespace lab3
         private readonly Misc.Colour OX_COLOUR = new Misc.Colour(1, 0, 0);
         private readonly Misc.Colour OY_COLOUR = new Misc.Colour(0, 1, 0);
         private readonly Misc.Colour OZ_COLOUR = new Misc.Colour(0, 0, 1);
+        private readonly Cairo.Color GRADIENT_STOP_COLOR = new Cairo.Color(0, 0, 0);
 
         /* Movement elements */
         [UI] private Adjustment _adjustmentAlpha = null;
@@ -88,6 +89,7 @@ namespace lab3
         [UI] private RadioButton _radioButtonNoShading = null;
         [UI] private RadioButton _radioButtonFlat = null;
         [UI] private RadioButton _radioButtonGouraud = null;
+        private CairoSurface crSurface = null;
 
         /* Material parameters */
         [UI] private Adjustment _adjustmentFigureR = null;
@@ -168,6 +170,7 @@ namespace lab3
             AddToggledEventToShading();
             AddValueChangedEventToMaterialParams();
             AddValueChangedEventToLightSource();
+            crSurface = new CairoSurface(_drawingArea);
             _drawingArea.Drawn += DrawingArea_DrawnEvent;
         }
 
@@ -409,15 +412,6 @@ namespace lab3
                 DrawSource(cr);
             }
             DrawAxises(cr, AXIS_POS * (new Vector2D(width, height)));
-
-            /* Это ненужно */
-            Vector2D a = new Vector2D(100, 100);
-            Vector2D b = new Vector2D(100, 200);
-            Vector2D c = new Vector2D(200, 200);
-            Vector2D d = new Vector2D(200, 100);
-
-            DrawGradient(cr, a, new Misc.Colour(1, 1, 0), b, new Misc.Colour(0, 1, 1), c, new Misc.Colour(1, 0, 1));
-            DrawGradient(cr, c, new Misc.Colour(1, 0, 1), d, new Misc.Colour(0, 1, 1), a, new Misc.Colour(1, 1, 0));
         }
 
         private void GenFigure()
@@ -549,14 +543,13 @@ namespace lab3
         private Misc.Colour GenShadePoint(Misc.Colour col, Vector4D point, Vector4D N)
         {
             N.Normalize();
-            Vector4D L = lightSource - point;
+            Vector4D L = GetVectorL(point);
             double dist = 0.001 * L.Len();
             L.Normalize();
-            Vector4D R = 2 * N * Vector4D.Dot(L, N) - L;
+            Vector4D R = GetVectorR(point, N, L);
             R.Normalize();
-            Vector4D S = INF_VEC - point;
+            Vector4D S = GetVectorS(point);
             S.Normalize();
-
             Misc.Colour ambientIntensity = ka * ia;
             Misc.Colour diffuseIntensity = kd * il * Vector4D.Dot(L, N);
             Misc.Colour specularIntensity = ks * il * Math.Pow(Vector4D.Dot(R, S), SHADING_COEF_P);
@@ -569,36 +562,53 @@ namespace lab3
             {
                 specularIntensity = new Misc.Colour();
             }
-            return col * (ambientIntensity + (diffuseIntensity + specularIntensity) / (dist + SHADING_COEF_K));
+            ambientIntensity.Clamp();
+            diffuseIntensity.Clamp();
+            specularIntensity.Clamp();
+            Misc.Colour res = col * (ambientIntensity + (diffuseIntensity + specularIntensity) / (dist + SHADING_COEF_K));
+            res.Clamp();
+            return res;
         }
 
         private void DrawFigure(Context cr)
         {
-            if (_radioButtonGouraud.Active)
+            if (_checkButtonFillPolygons.Active && _radioButtonGouraud.Active)
             {
                 fig.GenVertN();
-            }
-            for (int i = 0; i < fig._polygons.Count; ++i)
-            {
-                if (!_checkButtonIgnoreInvisible.Active || fig._polygons[i].Visible()) {
-                    if (_checkButtonFillPolygons.Active)
+                crSurface.BeginUpdate(cr);
+                for (int i = 0; i < fig._polygons.Count; ++i)
+                {
+                    if (!_checkButtonIgnoreInvisible.Active || fig._polygons[i].Visible())
                     {
-                        if (_radioButtonGouraud.Active)
-                        {
-                            GouraudPolygon(cr, i);
-                        }
-                        else
-                        {
-                            FillPolygon(cr, fig._polygons[i], polygonShade[i]);
-                        }
-                        if (_checkButtonDrawFrame.Active)
+                        GouraudPolygon(cr, i);
+                    }
+                }
+                crSurface.EndUpdate();
+            }
+            if (_checkButtonFillPolygons.Active && !_radioButtonGouraud.Active)
+            {
+                for (int i = 0; i < fig._polygons.Count; ++i)
+                {
+                    if (!_checkButtonIgnoreInvisible.Active || fig._polygons[i].Visible())
+                    {
+                        FillPolygon(cr, fig._polygons[i], polygonShade[i]);
+                    }
+                }
+            }
+            if (_checkButtonDrawFrame.Active)
+            {
+                for (int i = 0; i < fig._polygons.Count; ++i)
+                {
+                    if (!_checkButtonIgnoreInvisible.Active || fig._polygons[i].Visible())
+                    {
+                        if (_checkButtonFillPolygons.Active)
                         {
                             DrawPolygon(cr, i, DEFAULT_LINE_COLOUR_FILL);
                         }
-                    }
-                    else if (_checkButtonDrawFrame.Active)
-                    {
-                        DrawPolygon(cr, i, DEFAULT_LINE_COLOUR);
+                        else
+                        {
+                            DrawPolygon(cr, i, DEFAULT_LINE_COLOUR);
+                        }
                     }
                 }
             }
@@ -664,26 +674,26 @@ namespace lab3
         {
             List<Vector4D> polyVertices = new List<Vector4D>();
             List<Misc.Colour> vertColours = new List<Misc.Colour>();
-            // for (int i = 0; i < fig._polygons[id].Count; ++i)
-            // {
-            //     VertexN vertN  = fig._polygons[id]._data[i];
-            //     polyVertices.Add(vertN.vertex);
-            //     vertColours.Add(GenShadePoint(polygonColors[id], vertN.vertex, vertN.N));
-            // }
             Polygon poly = fig._polygons[id];
             for (int i = 0; i < poly.Count; ++i)
             {
                 polyVertices.Add(poly[i]);
                 vertColours.Add(GenShadePoint(polygonColors[id], poly[i], poly._normals[i]));
-                // DrawVector(cr, poly[i].Proj() + windowCenter, (poly[i] + 50 * poly._normals[i]).Proj() + windowCenter, DEFAULT_NORMAL_COLOR);
             }
-            DrawGradient(cr, windowCenter + polyVertices[0].Proj(), vertColours[0], windowCenter + polyVertices[1].Proj(), vertColours[1], windowCenter + polyVertices[2].Proj(), vertColours[2]);
+            if (Vector4D.ApproxEqual(poly[0], poly[1]) || Vector4D.ApproxEqual(poly[2], poly[1]) || Vector4D.ApproxEqual(poly[0], poly[2]))
+            {
+                return;
+            }
+            if (Misc.Colour.ApproxEqual(vertColours[0], vertColours[1]) && Misc.Colour.ApproxEqual(vertColours[0], vertColours[1]) ) {
+                crSurface.DrawTriangle(vertColours[0], windowCenter + polyVertices[0].Proj(), windowCenter + polyVertices[1].Proj(), windowCenter + polyVertices[2].Proj());
+                return;
+            }
+            crSurface.DrawTriangle(vertColours[0], windowCenter + polyVertices[0].Proj(), vertColours[1], windowCenter + polyVertices[1].Proj(), vertColours[2], windowCenter + polyVertices[2].Proj());
         }
 
         private void FillPolygon(Context cr, Polygon poly, Misc.Colour col)
         {
             Vector4D vertex = poly[0];
-            cr.NewPath();
             cr.MoveTo(vertex.X + windowCenter.X, vertex.Y + windowCenter.Y);
             for (int i = 1; i < poly.Count; ++i)
             {
@@ -731,74 +741,42 @@ namespace lab3
             }
         }
 
-        /* ToDo а можно ли проще? Или сделать функции для L, S? */
+        private Vector4D GetVectorL(Vector4D p)
+        {
+            return lightSource - p;
+        }
+
+        private Vector4D GetVectorR(Vector4D p, Vector4D n, Vector4D l)
+        {
+            return 2 * n * Vector4D.Dot(n, l) - l;
+        }
+
+        private Vector4D GetVectorS(Vector4D p)
+        {
+            return INF_VEC - p;
+        }
+
         private void DrawRayVectors(Context cr, Polygon poly)
         {
-            Vector4D polyCenter = poly.GetCenter();
-            Vector4D aN = polyCenter;
+            Vector4D aN = poly.GetCenter();
             Vector4D N = poly.NormalVector();
             if (N.IsNull())
             {
                 return;
             }
             N.Normalize();
-            Vector4D L = lightSource - polyCenter;
+            Vector4D L = GetVectorL(aN);
             L.Normalize();
             if (Vector4D.Dot(L, N) > -Misc.EPS)
             {
                 Vector4D lN = aN + RAY_VECTOR_SIZE * L;
                 DrawVector(cr, windowCenter + lN.Proj(), windowCenter + aN.Proj(), DEFAULT_LIGHT_RAY_COLOUR);
 
-                Vector4D R = 2 * N * Vector4D.Dot(L, N) - L;
+                Vector4D R = GetVectorR(aN, N, L);
                 R.Normalize();
                 Vector4D rN = aN + RAY_VECTOR_SIZE * R;
                 DrawVector(cr, windowCenter + aN.Proj(), windowCenter + rN.Proj(), DEFAULT_LIGHT_RAY_COLOUR);
             }
-        }
-
-        /* ToDo полоски... */
-        private void DrawGradient(Context cr, Vector2D point1, Misc.Colour col1, Vector2D point2, Misc.Colour col2, Vector2D point3, Misc.Colour col3)
-        {
-            cr.MoveTo(point1.X, point1.Y);
-            cr.LineTo(point2.X, point2.Y);
-            cr.LineTo(point3.X, point3.Y);
-            cr.ClosePath();
-            var path = cr.CopyPath();
-            RadialGradient pattern;
-            Matrix transform, origins = cr.Matrix;//.Clone() as Matrix;
-
-            // Каждый радиальный градиент изначально располагается в точке (0,0) с радиусом равным 1.
-            // При помощи аффинных преобразований точки (0;0), (2/√3;0) и (1/√3;1) трансформируется в
-            // вершины исходного треугольника. Так как расстояния между последними двумя точками до
-            // центра градиента равно 1.1547, что больше 1, то они оказываются вне преобразования.
-            void Composite(Misc.Colour ci, Vector2D pi, Vector2D pj, Vector2D pk)
-            {
-                pattern = new RadialGradient(0, 0, 0, 0, 0, 1);
-                pattern.AddColorStopRgb(0, ci.ToCairo());
-                pattern.AddColorStopRgb(1, new Cairo.Color(0, 0, 0));
-                transform = new Matrix(
-                        /* [1,1] sx */  (pj.X - pi.X) * .5 * Math.Sqrt(3),
-                        /* [2,1]    */  (pj.Y - pi.Y) * .5 * Math.Sqrt(3),
-                        /* [1,2]    */  (pk.X - pi.X) - .5 * (pj.X - pi.X),
-                        /* [2,2] sy */  (pk.Y - pi.Y) - .5 * (pj.Y - pi.Y),
-                        /* [1,3] tx */   pi.X,
-                        /* [2,3] ty */   pi.Y
-                );
-                cr.Transform(transform);
-                cr.SetSource(pattern);
-                cr.Fill();
-                pattern.Dispose();
-                cr.Matrix = origins;//.Clone() as Matrix;
-            }
-
-            Composite(col1, point1, point2, point3);
-            cr.AppendPath(path);
-            cr.Operator = Operator.Add;
-            Composite(col2, point2, point1, point3);
-            cr.AppendPath(path);
-            Composite(col3, point3, point1, point2);
-            cr.Operator = Operator.Over;
-            path.Dispose();
         }
 
         private static void DrawVector(Context cr, Vector2D point1, Vector2D point2, Misc.Colour col)

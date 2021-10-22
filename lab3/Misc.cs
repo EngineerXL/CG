@@ -47,6 +47,48 @@ namespace lab3
                 b = _b;
             }
 
+            public double this[int i]
+            {
+                get
+                {
+                    if (i == 0)
+                    {
+                        return r;
+                    }
+                    else if (i == 1)
+                    {
+                        return g;
+                    }
+                    else if (i == 2)
+                    {
+                        return b;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+                set
+                {
+                    if (i == 0)
+                    {
+                        r = value;
+                    }
+                    else if (i == 1)
+                    {
+                        g = value;
+                    }
+                    else if (i == 2)
+                    {
+                        b = value;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+            }
+
             public static Colour operator + (Colour lhs, Colour rhs)
             {
                 return new Colour(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b);
@@ -70,6 +112,23 @@ namespace lab3
             public static Colour operator * (Colour lhs, Colour rhs)
             {
                 return new Colour(lhs.r * rhs.r, lhs.g * rhs.g, lhs.b * rhs.b);
+            }
+
+            public static bool ApproxEqual(Colour lhs, Colour rhs)
+            {
+                return Math.Abs(lhs.r - rhs.r) < EPS && Math.Abs(lhs.g - rhs.g) < EPS && Math.Abs(lhs.b - rhs.b) < EPS;
+            }
+
+            public void Clamp()
+            {
+                r = Math.Min(1, Math.Max(0, r));
+                g = Math.Min(1, Math.Max(0, g));
+                b = Math.Min(1, Math.Max(0, b));
+            }
+
+            public override String ToString()
+            {
+                return new String("{" + r.ToString() + ", " + g.ToString() + ", " + b.ToString() + "}");
             }
 
             public Cairo.Color ToCairo()
