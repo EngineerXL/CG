@@ -1,3 +1,7 @@
+// Режим совместимости для работы на рабочем столе с глубиной цвета отличной от 32 бит.
+// Если используется 32 битный рабочий стол то можно отключить - будет чуть быстрее работать.
+#define COMPATIBLE_MODE
+
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,35 +19,55 @@ namespace lab3
     public unsafe class CairoSurface : DrawingSurface
     {
         public override int Width {
-            get { return _Width; }
+            get { return _width; }
         }
 
         public override int Height {
-            get { return _Height; }
+            get { return _height; }
         }
         protected override  Clipper Clip {
-            get { return _Clipper; }
+            get { return _clipper; }
         }
 
         public override void* ImageBits {
-            get { return (void*) _pixbuf.Pixels; }
+            get { return _imgptr; }
         }
 
-        private readonly DrawingArea _Widget;
-        private int _Width, _Height;
-        private Clipper _Clipper;
+        private readonly DrawingArea _widget;
+        private int _winpos_x1, _winpos_y1, _width, _height;
+        private Clipper _clipper;
         private Pixbuf _pixbuf;
         private Context cr;
+        private Widget _window;
+        private void* _imgptr;
+
+        #if COMPATIBLE_MODE
+        private int _prev_width, _prev_height;
+        #endif
 
         public CairoSurface(DrawingArea widget)
         {
-            _Widget = widget;
-            _Widget.SizeAllocated += (o, args) =>
-            {
-                _Width = args.Allocation.Width;
-                _Height = args.Allocation.Height;
-                _Clipper = new Clipper(this);
+            _imgptr = null;
+            _widget = widget;
+            _clipper = null;
+            _prev_width = _prev_height = -1;
+            _widget.SizeAllocated += (o, args) => {
+                _width  = args.Allocation.Width;
+                _height = args.Allocation.Height;
+                _clipper = new Clipper(this);
+                #if COMPATIBLE_MODE
+                if (0 != ((_width ^ _prev_width) | (_height ^ _prev_height))) {
+                    _prev_width  = _width;
+                    _prev_height = _height;
+                    if (_imgptr != null)
+                        Marshal.FreeHGlobal((IntPtr)_imgptr);
+                    _imgptr = (void*)Marshal.AllocHGlobal((_width * _height << 2) + 1);
+                }
+                #endif
             };
+            _window = _widget;
+            while (_window.Parent != null)
+                _window = _window.Parent;
         }
 
         public void BeginUpdate(Context cr)
@@ -52,7 +76,21 @@ namespace lab3
                 throw new Exception("BeginUpdate() нельзя вызывать повторно до вызова EndUpdate()");
 
             var target = (this.cr = cr).GetTarget();
-            _pixbuf = new Pixbuf(target, _Widget.Allocation.Left, _Widget.Allocation.Top, _Width, _Height);
+            _widget.TranslateCoordinates(_window, 0, 0, out _winpos_x1, out _winpos_y1);
+            _pixbuf = new Pixbuf(target, _winpos_x1, _winpos_y1, _width, _height);
+            #if !COMPATIBLE_MODE
+            _imgptr = (void*)_pixbuf.Pixels;
+            #else
+            if (_pixbuf.BitsPerSample != 8)
+                throw new NotImplementedException("Unsupported BitsPerSample");
+            PixelCast pxcast;
+            switch (_pixbuf.NChannels) {
+                case 4: pxcast = PixelCast.XRGB8888_XRGB8888; break;
+                case 3: pxcast = PixelCast.XRGB0888_XRGB8888; break;
+                default: throw new NotImplementedException("Unsupported NChannels");
+            }
+            BitBlt(pxcast, (void*)_pixbuf.Pixels, _imgptr, _pixbuf.Rowstride,_width << 2, _width, _height);
+            #endif
             target.Dispose();
         }
 
@@ -60,6 +98,15 @@ namespace lab3
         {
             if (cr == null)
                 throw new Exception("EndUpdate() может быть вызван только после BeginUpdate()");
+
+            PixelCast pxcast;
+            switch (_pixbuf.NChannels) {
+                case 4: pxcast = PixelCast.XRGB8888_XRGB8888; break;
+                case 3: pxcast = PixelCast.XRGB8888_XRGB0888; break;
+                default: throw new NotImplementedException("Unsupported NChannels");
+            }
+            BitBlt(pxcast, _imgptr, (void*)_pixbuf.Pixels, _width << 2, _pixbuf.Rowstride, _width, _height);
+
             CairoHelper.SetSourcePixbuf(cr, _pixbuf, 0, 0);
             cr.Paint();
             cr = null;
@@ -68,20 +115,55 @@ namespace lab3
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetRgb(Misc.Colour color)
-        { unchecked {
-                var rgb = stackalloc int[3];
-                // rgb[0] = (int) (color.r * 255);
-                // rgb[1] = (int) (color.g * 255);
-                // rgb[2] = (int) (color.b * 255);
-                for (int r, i = 3; 0 != i--;) {
-                    rgb[i] = (int) (color[i] * 255);
-                    r = 0xFF + ((rgb[i] - 0xFF) & ((rgb[i] - 0xFF) >> 31));
-                    rgb[i] = -((-r) & ((-r) >> 31));
-                }
-
-                // NOTE: ??! То ли Motorola то ли в Cairo используется BGR (покрайней мере в линуксе) ??!
-                return (int) 0xFF000000 | (rgb[2] << 16) | (rgb[1] << 8) | (rgb[0]);
+        { unchecked {     // color = []{ r, g, b } = [] { color[0], color[1], color[2] }
+            int col, argb = (int)0xFF000000;
+            for (int r, i = 3; 0 != i--;) {
+                col = (int) (color[i] * 255);
+                r = 0xFF + ((col - 0xFF) & ((col - 0xFF) >> 31));
+                col = -((-r) & ((-r) >> 31));
+                argb |= col << (i << 3); // abgr  ??! Cairo использует BGR или это Motorola ??!
+              //argb |= col << (16 - (i << 3)); // argb
+            }
+            return argb;
         } }
+
+        private enum PixelCast {
+            XRGB8888_XRGB8888,
+            XRGB8888_XRGB0888,
+            XRGB0888_XRGB8888
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BitBlt(PixelCast pxcast, void* src, void* dst, int src_stride, int dst_stride, int width, int heigh)
+        { unchecked {
+            var psrc = (byte*)src;
+            var pdst = (byte*)dst;
+
+            int src_pxlen, dst_pxlen;
+            switch ((int)pxcast) {
+                case (int)PixelCast.XRGB8888_XRGB8888: src_pxlen =    dst_pxlen = 4; break;
+                case (int)PixelCast.XRGB8888_XRGB0888: src_pxlen = 4; dst_pxlen = 3; break;
+                case (int)PixelCast.XRGB0888_XRGB8888: src_pxlen = 3; dst_pxlen = 4; break;
+                default: throw new NotImplementedException("Unsupported PixelCast");
+            }
+
+            int src_nextline = src_stride - width * src_pxlen;
+            int dst_nextline = dst_stride - width * dst_pxlen;
+            switch ((int) pxcast) {
+                case (int)PixelCast.XRGB8888_XRGB8888:
+                case (int)PixelCast.XRGB8888_XRGB0888:
+                    for (; 0 != heigh--; psrc += src_nextline, pdst += dst_nextline)
+                    for (int x = width; 0 != x--; psrc += src_pxlen, pdst += dst_pxlen)
+                        *(int*)pdst = *(int*)psrc;
+                    return;
+                case (int)PixelCast.XRGB0888_XRGB8888:
+                    for (; 0 != heigh--; psrc += src_nextline, pdst += dst_nextline)
+                    for (int x = width; 0 != x--; psrc += src_pxlen, pdst += dst_pxlen)
+                        *(int*)pdst = (int)0xFF000000 | *(int*)psrc;
+                    return;
+                default: throw new NotImplementedException("Unsupported PixelCast");
+            }
+        }}
 
         public void DrawTriangle(Misc.Colour color, Vector2D p1, Vector2D p2, Vector2D p3)
         {
@@ -584,7 +666,7 @@ namespace lab3
             sa = 0xFF + (sa & (sa >> 31));
             int rb = ((0xFF - sa)*(*imgptr & 0x00FF00FF) + sa*(color & 0x00FF00FF)) >> 8;
             int ag = ((*imgptr & 0x0000FF00) + sa*(((color & 0x0000FF00) - (*imgptr & 0x0000FF00)) >> 8));
-            *imgptr = (ag & 0x0000FF00) | (rb & 0x00FF00FF);
+            *imgptr = (int)0xFF000000 | (ag & 0x0000FF00) | (rb & 0x00FF00FF);
         }}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
