@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>LINUX</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <None Remove="**\*.glade;**\*.glsl;**\*.vert;**\*.frag" />
+      <EmbeddedResource Include="**\*.glade;**\*.glsl;**\*.vert;**\*.frag">
+          <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GtkSharp" Version="3.24.24.*" />
+  </ItemGroup>
+
+</Project>
