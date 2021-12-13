@@ -8,14 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-      <None Remove="**\*.glade;**\*.glsl;**\*.vert;**\*.frag" />
-      <EmbeddedResource Include="**\*.glade;**\*.glsl;**\*.vert;**\*.frag">
+      <None Remove="**\*.glade;**\*.vert;**\*.frag" />
+      <EmbeddedResource Include="**\*.glade;**\*.vert;**\*.frag">
           <LogicalName>%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="GtkSharp" Version="3.24.24.*" />
+    <ProjectReference Include="..\CGPlatform\CGPlatform.csproj" />
   </ItemGroup>
 
 </Project>

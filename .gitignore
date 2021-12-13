@@ -1,0 +1,10 @@
+# makefile
+makefile
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Glage temporary files
+MainWindow.glade~
+
