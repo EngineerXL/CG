@@ -6,6 +6,7 @@ namespace cw
     public class Curve
     {
         public List<Vector4D> Points = null;
+        public List<double> W = null;
         public int CountPoints = 0;
 
         public List<Vector4D> Data = null;
@@ -20,14 +21,16 @@ namespace cw
         private List<double> segments = null;
         private int countSegments = 0;
 
-        public Curve(int n, List<Vector4D> controlPoints)
+        public Curve(int n, List<Vector4D> controlPoints, List<double> weights)
         {
             steps = n;
             step = 1.0 / (double)steps;
             Points = new List<Vector4D>();
-            foreach (Vector4D p in controlPoints)
+            W = new List<double>();
+            for (int i = 0; i < controlPoints.Count; ++i)
             {
-                Points.Add(p);
+                Points.Add(controlPoints[i]);
+                W.Add(weights[i]);
             }
             CountPoints = Points.Count;
             CalcCurve();
@@ -78,11 +81,14 @@ namespace cw
                 for (int j = 0; j < steps; ++j)
                 {
                     Vector4D tt = new Vector4D();
+                    double qq = 0;
                     for (int ii = 0; ii < CountPoints; ++ii)
                     {
-                        tt = tt + Nip(ii, DEGREE, t) * Points[ii];
+                        double curNip = Nip(ii, DEGREE, t);
+                        tt = tt + curNip * W[ii] * Points[ii];
+                        qq = qq + curNip * W[ii];
                     }
-                    Data.Add(tt);
+                    Data.Add(tt / qq);
                     t += step;
                 }
             }

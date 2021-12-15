@@ -61,7 +61,7 @@ namespace cw
 
         Vector4D up = new Vector4D(0, 1, 0, 0);
         Vector4D cameraTarget = new Vector4D();
-        Vector4D cameraPos = new Vector4D(0, 0, 0.1, 0);
+        Vector4D cameraPos = new Vector4D(0, 0, 0.05, 0);
         Vector4D cameraDirection = new Vector4D();
         Vector4D cameraRight = new Vector4D();
         Vector4D cameraUp = new Vector4D();
@@ -95,18 +95,25 @@ namespace cw
         /* NURBS parameters */
         [UI] private Adjustment _adjustmentP1X = null;
         [UI] private Adjustment _adjustmentP1Y = null;
+        [UI] private Adjustment _adjustmentP1W = null;
         [UI] private Adjustment _adjustmentP2X = null;
         [UI] private Adjustment _adjustmentP2Y = null;
+        [UI] private Adjustment _adjustmentP2W = null;
         [UI] private Adjustment _adjustmentP3X = null;
         [UI] private Adjustment _adjustmentP3Y = null;
+        [UI] private Adjustment _adjustmentP3W = null;
         [UI] private Adjustment _adjustmentP4X = null;
         [UI] private Adjustment _adjustmentP4Y = null;
+        [UI] private Adjustment _adjustmentP4W = null;
         [UI] private Adjustment _adjustmentP5X = null;
         [UI] private Adjustment _adjustmentP5Y = null;
+        [UI] private Adjustment _adjustmentP5W = null;
         [UI] private Adjustment _adjustmentP6X = null;
         [UI] private Adjustment _adjustmentP6Y = null;
-        private const float POINT_SIZE = 8;
+        [UI] private Adjustment _adjustmentP6W = null;
         private List<Vector4D> controlPoints = null;
+        private List<double> weights = null;
+        private const float POINT_SIZE = 8;
 
         /* Figure colour and parameters */
         [UI] private Adjustment _adjustmentFigureR = null;
@@ -132,6 +139,9 @@ namespace cw
         private const float SOURCE_SIZE = 12;
         [UI] private CheckButton _checkButtonAutoScale = null;
         [UI] private CheckButton _checkButtonIgnoreInvisible = null;
+        [UI] private CheckButton _checkButtonDrawAxises = null;
+        private const float AXIS_POS = 0.95f;
+        private const float AXIS_SIZE = 0.025f;
         [UI] private CheckButton _checkButtonDrawControlPoints = null;
         [UI] private CheckButton _checkButtonDrawControlLine = null;
         [UI] private RadioButton _radioButtonNoShading = null;
@@ -173,6 +183,9 @@ namespace cw
         [UI] private Adjustment _adjustmentIlB = null;
         private Misc.Colour il = null;
 
+        /* Presets */
+        [UI] private FileChooserButton _fileChooserButtonOpenPreset = null;
+
         public MainWindow() : this(new Builder("MainWindow.glade")) { }
 
         private MainWindow(Builder builder) : base(builder.GetRawOwnedObject("MainWindow"))
@@ -181,6 +194,7 @@ namespace cw
             DeleteEvent += Window_DeleteEvent;
             _GLArea.Realized += GLArea_Realized;
             _GLArea.Resize += GLArea_ResizeEvent;
+            _fileChooserButtonOpenPreset.FileSet += PresetChoosenEvent;
             AddEventsToGLArea();
             AddValueChangedEventToMovement();
             AddValueChangedEventToNURBSParams();
@@ -191,12 +205,45 @@ namespace cw
             AddValueChangedEventToLightSource();
         }
 
-        private void Window_DeleteEvent(object sender, DeleteEventArgs a)
+        private void PresetChoosenEvent(object sender, EventArgs args)
+        {
+            ReadPreset(_fileChooserButtonOpenPreset.Filename);
+        }
+
+        private void ReadPreset(string filename)
+        {
+            string[] lines = System.IO.File.ReadAllLines(filename);
+            _adjustmentP1X.Value = float.Parse(lines[0 + 0]);
+            _adjustmentP1Y.Value = float.Parse(lines[0 + 1]);
+            _adjustmentP1W.Value = float.Parse(lines[0 + 2]);
+
+            _adjustmentP2X.Value = float.Parse(lines[3 + 0]);
+            _adjustmentP2Y.Value = float.Parse(lines[3 + 1]);
+            _adjustmentP2W.Value = float.Parse(lines[3 + 2]);
+
+            _adjustmentP3X.Value = float.Parse(lines[6 + 0]);
+            _adjustmentP3Y.Value = float.Parse(lines[6 + 1]);
+            _adjustmentP3W.Value = float.Parse(lines[6 + 2]);
+
+            _adjustmentP4X.Value = float.Parse(lines[9 + 0]);
+            _adjustmentP4Y.Value = float.Parse(lines[9 + 1]);
+            _adjustmentP4W.Value = float.Parse(lines[9 + 2]);
+
+            _adjustmentP5X.Value = float.Parse(lines[12 + 0]);
+            _adjustmentP5Y.Value = float.Parse(lines[12 + 1]);
+            _adjustmentP5W.Value = float.Parse(lines[12 + 2]);
+
+            _adjustmentP6X.Value = float.Parse(lines[15 + 0]);
+            _adjustmentP6Y.Value = float.Parse(lines[15 + 1]);
+            _adjustmentP6W.Value = float.Parse(lines[15 + 2]);
+        }
+
+        private void Window_DeleteEvent(object sender, DeleteEventArgs args)
         {
             Application.Quit();
         }
 
-        private void GLArea_Realized(object sender, EventArgs a)
+        private void GLArea_Realized(object sender, EventArgs args)
         {
             gl = new OpenGL();
             _GLArea.MakeCurrent();
@@ -223,7 +270,7 @@ namespace cw
             _GLArea.Unrealized += GLArea_Unrealized;
         }
 
-        private void GLArea_Render(object sender, EventArgs a)
+        private void GLArea_Render(object sender, EventArgs args)
         {
             GetAllData();
             if (needToBufferData)
@@ -269,16 +316,16 @@ namespace cw
                 gl.CullFace(OpenGL.GL_BACK);
                 gl.DrawElements(OpenGL.GL_TRIANGLES, trianglesLen, OpenGL.GL_UNSIGNED_INT, (IntPtr)0);
             }
-            if (_checkButtonDrawControlPoints.Active)
+            if (_checkButtonDrawControlLine.Active)
             {
                 gl.Uniform3(singleColor3fLocation, 1, new float[3] {0, 1, 0});
-                gl.PointSize(POINT_SIZE);
+                gl.LineWidth(2);
                 gl.DrawElements(OpenGL.GL_LINE_STRIP, 6, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 0) * sizeof(int)));
             }
             if (_checkButtonDrawControlPoints.Active)
             {
                 gl.Uniform3(singleColor3fLocation, 1, new float[3] {1, 0, 0});
-                gl.LineWidth(2);
+                gl.PointSize(POINT_SIZE);
                 gl.DrawElements(OpenGL.GL_POINTS, 6, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 0) * sizeof(int)));
             }
             if (_checkButtonDrawSource.Active)
@@ -288,9 +335,18 @@ namespace cw
                 gl.PointSize(SOURCE_SIZE);
                 gl.DrawElements(OpenGL.GL_POINTS, 1, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 6) * sizeof(int)));
             }
+
+            if (_checkButtonDrawAxises.Active)
+            {
+                // ?
+                gl.UniformMatrix4(model4fLocation, 1, true, (new Matrix4D()).ToFloatArray());
+                gl.Uniform3(singleColor3fLocation, 1, new float[3] {0, 1, 0});
+                gl.LineWidth(2);
+                gl.DrawElements(OpenGL.GL_LINE_STRIP, 4, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 7) * sizeof(int)));
+            }
         }
 
-        private void GLArea_Unrealized(object sender, EventArgs a)
+        private void GLArea_Unrealized(object sender, EventArgs args)
         {
             /* Deleting buffers */
             gl.BindVertexArray(0);
@@ -401,29 +457,54 @@ namespace cw
             }
         }
 
+        private void WriteAxises(float * ptr, int offset)
+        {
+            int i = 0;
+            for (int j = 0; j < 4; ++j)
+            {
+                ptr[offset + i + 0] = AXIS_POS;
+                ptr[offset + i + 1] = AXIS_POS;
+                ptr[offset + i + 2] = 0;
+                switch (j)
+                {
+                    case 1:
+                        ptr[offset + i + 0] += AXIS_SIZE;
+                        break;
+                    case 2:
+                        ptr[offset + i + 1] += AXIS_SIZE;
+                        break;
+                    case 3:
+                        ptr[offset + i + 2] += AXIS_SIZE;
+                        break;
+                }
+                i = i + 9;
+            }
+        }
+
         private void BufferFigureData()
         {
-            fig = new Figure(horizontalN, verticalN, controlPoints, new Misc.Colour(0, 0, 0));
+            fig = new Figure(horizontalN, verticalN, controlPoints, weights, new Misc.Colour(0, 0, 0));
             verticesLen = fig.Vertices.Count;
             bufferLen = verticesLen * VERTEX_SIZE;
-            float[] verticesBuffer = new float[bufferLen + 7 * VERTEX_SIZE];
+            float[] verticesBuffer = new float[bufferLen + 11 * VERTEX_SIZE];
             fixed (float * ptr = &verticesBuffer[0])
             {
                 fig.WriteVertexData(ptr);
                 WriteControlPoints(ptr, verticesLen * 9);
-                gl.BufferData(OpenGL.GL_ARRAY_BUFFER, sizeof(float) * (bufferLen + 7 * VERTEX_SIZE), (IntPtr)ptr, OpenGL.GL_DYNAMIC_DRAW);
+                WriteAxises(ptr, (verticesLen + 7) * 9);
+                gl.BufferData(OpenGL.GL_ARRAY_BUFFER, sizeof(float) * (bufferLen + 11 * VERTEX_SIZE), (IntPtr)ptr, OpenGL.GL_DYNAMIC_DRAW);
             }
             polygonCount = fig.Polygons.Count;
             trianglesLen = 3 * polygonCount;
-            int[] indices = new int[trianglesLen + 7];
+            int[] indices = new int[trianglesLen + 11];
             fixed (int * ptr = &indices[0])
             {
                 fig.WriteIndeces(ptr);
-                for (int i = 0; i < 7; ++i)
+                for (int i = 0; i < 11; ++i)
                 {
                     ptr[trianglesLen + i] = verticesLen + i;
                 }
-                gl.BufferData(OpenGL.GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * (trianglesLen + 7), (IntPtr)ptr, OpenGL.GL_DYNAMIC_DRAW);
+                gl.BufferData(OpenGL.GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * (trianglesLen + 11), (IntPtr)ptr, OpenGL.GL_DYNAMIC_DRAW);
             }
         }
 
@@ -437,7 +518,7 @@ namespace cw
             gl.Enable(OpenGL.GL_BLEND);
             gl.BlendFunc(OpenGL.GL_SRC_ALPHA, OpenGL.GL_ONE_MINUS_SRC_ALPHA);
 
-            gl.Enable(OpenGL.GL_CULL_FACE);
+            // gl.Enable(OpenGL.GL_CULL_FACE);
 
             gl.Enable(OpenGL.GL_POINT_SMOOTH);
             gl.Hint(OpenGL.GL_POINT_SMOOTH_HINT, OpenGL.GL_NICEST);
@@ -478,21 +559,27 @@ namespace cw
         {
             _adjustmentP1X.ValueChanged += GenerateFigureAndDraw;
             _adjustmentP1Y.ValueChanged += GenerateFigureAndDraw;
+            _adjustmentP1W.ValueChanged += GenerateFigureAndDraw;
 
             _adjustmentP2X.ValueChanged += GenerateFigureAndDraw;
             _adjustmentP2Y.ValueChanged += GenerateFigureAndDraw;
+            _adjustmentP2W.ValueChanged += GenerateFigureAndDraw;
 
             _adjustmentP3X.ValueChanged += GenerateFigureAndDraw;
             _adjustmentP3Y.ValueChanged += GenerateFigureAndDraw;
+            _adjustmentP3W.ValueChanged += GenerateFigureAndDraw;
 
             _adjustmentP4X.ValueChanged += GenerateFigureAndDraw;
             _adjustmentP4Y.ValueChanged += GenerateFigureAndDraw;
+            _adjustmentP4W.ValueChanged += GenerateFigureAndDraw;
 
             _adjustmentP5X.ValueChanged += GenerateFigureAndDraw;
             _adjustmentP5Y.ValueChanged += GenerateFigureAndDraw;
+            _adjustmentP5W.ValueChanged += GenerateFigureAndDraw;
 
             _adjustmentP6X.ValueChanged += GenerateFigureAndDraw;
             _adjustmentP6Y.ValueChanged += GenerateFigureAndDraw;
+            _adjustmentP6W.ValueChanged += GenerateFigureAndDraw;
         }
 
         private void AddValueChangedEventToDrawingColours()
@@ -519,6 +606,7 @@ namespace cw
             _checkButtonDrawSource.Toggled += Redraw;
             _checkButtonAutoScale.Toggled += Redraw;
             _checkButtonIgnoreInvisible.Toggled += Redraw;
+            _checkButtonDrawAxises.Toggled += Redraw;
             _checkButtonDrawControlPoints.Toggled += Redraw;
             _checkButtonDrawControlLine.Toggled += Redraw;
             _radioButtonNoShading.Toggled += Redraw;
@@ -616,6 +704,13 @@ namespace cw
             controlPoints.Add(new Vector4D(_adjustmentP4X.Value, _adjustmentP4Y.Value, 0, 0));
             controlPoints.Add(new Vector4D(_adjustmentP5X.Value, _adjustmentP5Y.Value, 0, 0));
             controlPoints.Add(new Vector4D(_adjustmentP6X.Value, _adjustmentP6Y.Value, 0, 0));
+            weights = new List<double>(6);
+            weights.Add(_adjustmentP1W.Value);
+            weights.Add(_adjustmentP2W.Value);
+            weights.Add(_adjustmentP3W.Value);
+            weights.Add(_adjustmentP4W.Value);
+            weights.Add(_adjustmentP5W.Value);
+            weights.Add(_adjustmentP6W.Value);
         }
 
         private void GetFigureData()

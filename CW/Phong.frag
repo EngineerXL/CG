@@ -29,6 +29,12 @@ void main(void) {
     vec3 r = normalize(2 * normal * dot(normal, l) - l);
     float diffusal = dot(l, normal);
     float specular = dot(r, s);
+    if (!gl_FrontFacing) {
+        s = normalize(camera - position);
+        r = normalize(2 * -normal * dot(-normal, l) - l);
+        diffusal = dot(l, -normal);
+        specular = dot(r, s);
+    }
     if (diffusal < 1e-3) {
         diffusal = 0;
         specular = 0;

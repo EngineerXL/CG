@@ -97,6 +97,8 @@ namespace cw
         private List< List<Vertex> > LayerVertices;
 
         public List<Vector4D> ControlPoints;
+        public List<double> Weights;
+
         public List<Vertex> Vertices;
         public List<Polygon> Polygons;
 
@@ -106,12 +108,13 @@ namespace cw
 
         public Misc.Colour FigureColour;
 
-        public Figure(int paramPhi, int paramCurve, List<Vector4D> controlPoints, Misc.Colour col)
+        public Figure(int paramPhi, int paramCurve, List<Vector4D> controlPoints, List<double> weights, Misc.Colour col)
         {
             ParamPhi = paramPhi;
             ParamCurve = paramCurve - 1;
             DeltaPhi = Misc.ToRadians(Misc.MAX_DEG / (double)(ParamPhi));
             ControlPoints = controlPoints;
+            Weights = weights;
             FigureColour = col;
             GenVertices();
             GenFigure();
@@ -121,7 +124,7 @@ namespace cw
         private void GenVertices()
         {
             Vertices = new List<Vertex>();
-            Curve nurbs = new Curve(ParamCurve, ControlPoints);
+            Curve nurbs = new Curve(ParamCurve, ControlPoints, Weights);
             LayerVertices = new List< List<Vertex> >();
             for (int i = 0; i < nurbs.CountData; ++i)
             {
