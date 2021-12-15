@@ -11,6 +11,9 @@ uniform mat4 view4f;
 uniform mat4 model4f;
 uniform bool useSingleColor;
 uniform vec3 singleColor3f;
+uniform bool moveToCorner;
+
+const vec4 cornerVec = vec4(0.85f, -0.85f, 0, 0);
 
 void main(void) {
     vec4 vertexPos = vec4(cord3f, 1.0f);
@@ -20,4 +23,7 @@ void main(void) {
     position = vertexPos.xyz;
     normal = normalize(vertexNormal.xyz);
     gl_Position = vertexPos;
+    if (moveToCorner) {
+        gl_Position += cornerVec;
+    }
 }

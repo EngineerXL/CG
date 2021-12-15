@@ -29,6 +29,7 @@ namespace cw
         private int model4fLocation;
         private int useSingleColorLocation;
         private int singleColor3fLocation;
+        private int moveToCornerLocation;
         private int ka3fLocation;
         private int kd3fLocation;
         private int ks3fLocation;
@@ -140,8 +141,7 @@ namespace cw
         [UI] private CheckButton _checkButtonAutoScale = null;
         [UI] private CheckButton _checkButtonIgnoreInvisible = null;
         [UI] private CheckButton _checkButtonDrawAxises = null;
-        private const float AXIS_POS = 0.95f;
-        private const float AXIS_SIZE = 0.025f;
+        private const float AXIS_SIZE = 0.1f;
         [UI] private CheckButton _checkButtonDrawControlPoints = null;
         [UI] private CheckButton _checkButtonDrawControlLine = null;
         [UI] private RadioButton _radioButtonNoShading = null;
@@ -338,11 +338,15 @@ namespace cw
 
             if (_checkButtonDrawAxises.Active)
             {
-                // ?
                 gl.UniformMatrix4(model4fLocation, 1, true, (new Matrix4D()).ToFloatArray());
+                gl.Uniform1(moveToCornerLocation, 1);
+                gl.LineWidth(3);
+                gl.Uniform3(singleColor3fLocation, 1, new float[3] {1, 0, 0});
+                gl.DrawElements(OpenGL.GL_LINES, 2, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 7 + 0) * sizeof(int)));
                 gl.Uniform3(singleColor3fLocation, 1, new float[3] {0, 1, 0});
-                gl.LineWidth(2);
-                gl.DrawElements(OpenGL.GL_LINE_STRIP, 4, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 7) * sizeof(int)));
+                gl.DrawElements(OpenGL.GL_LINES, 2, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 7 + 2) * sizeof(int)));
+                gl.Uniform3(singleColor3fLocation, 1, new float[3] {0, 0, 1});
+                gl.DrawElements(OpenGL.GL_LINES, 2, OpenGL.GL_UNSIGNED_INT, (IntPtr)((trianglesLen + 7 + 4) * sizeof(int)));
             }
         }
 
@@ -420,6 +424,7 @@ namespace cw
             model4fLocation        = gl.GetUniformLocation(shaderProgram, "model4f");
             useSingleColorLocation = gl.GetUniformLocation(shaderProgram, "useSingleColor");
             singleColor3fLocation  = gl.GetUniformLocation(shaderProgram, "singleColor3f");
+            moveToCornerLocation  = gl.GetUniformLocation(shaderProgram, "moveToCorner");
             ka3fLocation           = gl.GetUniformLocation(shaderProgram, "ka3f");
             kd3fLocation           = gl.GetUniformLocation(shaderProgram, "kd3f");
             ks3fLocation           = gl.GetUniformLocation(shaderProgram, "ks3f");
@@ -462,9 +467,6 @@ namespace cw
             int i = 0;
             for (int j = 0; j < 4; ++j)
             {
-                ptr[offset + i + 0] = AXIS_POS;
-                ptr[offset + i + 1] = AXIS_POS;
-                ptr[offset + i + 2] = 0;
                 switch (j)
                 {
                     case 1:
@@ -479,6 +481,16 @@ namespace cw
                 }
                 i = i + 9;
             }
+        }
+
+        private void WriteAxisesIndices(int * ptr, int offsetInd, int offsetVertex)
+        {
+            ptr[offsetInd + 0] = offsetVertex + 0;
+            ptr[offsetInd + 1] = offsetVertex + 1;
+            ptr[offsetInd + 2] = offsetVertex + 0;
+            ptr[offsetInd + 3] = offsetVertex + 2;
+            ptr[offsetInd + 4] = offsetVertex + 0;
+            ptr[offsetInd + 5] = offsetVertex + 3;
         }
 
         private void BufferFigureData()
@@ -496,15 +508,16 @@ namespace cw
             }
             polygonCount = fig.Polygons.Count;
             trianglesLen = 3 * polygonCount;
-            int[] indices = new int[trianglesLen + 11];
+            int[] indices = new int[trianglesLen + 13];
             fixed (int * ptr = &indices[0])
             {
                 fig.WriteIndeces(ptr);
-                for (int i = 0; i < 11; ++i)
+                for (int i = 0; i < 7; ++i)
                 {
                     ptr[trianglesLen + i] = verticesLen + i;
                 }
-                gl.BufferData(OpenGL.GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * (trianglesLen + 11), (IntPtr)ptr, OpenGL.GL_DYNAMIC_DRAW);
+                WriteAxisesIndices(ptr, trianglesLen + 7, verticesLen + 7);
+                gl.BufferData(OpenGL.GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * (trianglesLen + 13), (IntPtr)ptr, OpenGL.GL_DYNAMIC_DRAW);
             }
         }
 
@@ -678,6 +691,7 @@ namespace cw
             gl.Uniform3(light3fLocation, 1, l.ToFloatArray());
             gl.Uniform3(ia3fLocation, 1, ia.ToFloatArray());
             gl.Uniform3(il3fLocation, 1, il.ToFloatArray());
+            gl.Uniform1(moveToCornerLocation, 0);
         }
 
         private void GetMovementData()
