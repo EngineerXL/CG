@@ -1,6 +1,7 @@
 using System;
-using System.Reflection;
 using System.Diagnostics;
+using System.Globalization;
+using System.Reflection;
 using System.Collections.Generic;
 using Gdk;
 using Gtk;
@@ -213,29 +214,34 @@ namespace cw
         private void ReadPreset(string filename)
         {
             string[] lines = System.IO.File.ReadAllLines(filename);
-            _adjustmentP1X.Value = float.Parse(lines[0 + 0]);
-            _adjustmentP1Y.Value = float.Parse(lines[0 + 1]);
-            _adjustmentP1W.Value = float.Parse(lines[0 + 2]);
+            float[] values = new float[3 * 6];
+            for (int i = 0; i < 3 * 6; ++i)
+            {
+                values[i] = float.Parse(lines[i], CultureInfo.InvariantCulture);
+            }
+            _adjustmentP1X.Value = values[0 + 0];
+            _adjustmentP1Y.Value = values[0 + 1];
+            _adjustmentP1W.Value = values[0 + 2];
 
-            _adjustmentP2X.Value = float.Parse(lines[3 + 0]);
-            _adjustmentP2Y.Value = float.Parse(lines[3 + 1]);
-            _adjustmentP2W.Value = float.Parse(lines[3 + 2]);
+            _adjustmentP2X.Value = values[3 + 0];
+            _adjustmentP2Y.Value = values[3 + 1];
+            _adjustmentP2W.Value = values[3 + 2];
 
-            _adjustmentP3X.Value = float.Parse(lines[6 + 0]);
-            _adjustmentP3Y.Value = float.Parse(lines[6 + 1]);
-            _adjustmentP3W.Value = float.Parse(lines[6 + 2]);
+            _adjustmentP3X.Value = values[6 + 0];
+            _adjustmentP3Y.Value = values[6 + 1];
+            _adjustmentP3W.Value = values[6 + 2];
 
-            _adjustmentP4X.Value = float.Parse(lines[9 + 0]);
-            _adjustmentP4Y.Value = float.Parse(lines[9 + 1]);
-            _adjustmentP4W.Value = float.Parse(lines[9 + 2]);
+            _adjustmentP4X.Value = values[9 + 0];
+            _adjustmentP4Y.Value = values[9 + 1];
+            _adjustmentP4W.Value = values[9 + 2];
 
-            _adjustmentP5X.Value = float.Parse(lines[12 + 0]);
-            _adjustmentP5Y.Value = float.Parse(lines[12 + 1]);
-            _adjustmentP5W.Value = float.Parse(lines[12 + 2]);
+            _adjustmentP5X.Value = values[12 + 0];
+            _adjustmentP5Y.Value = values[12 + 1];
+            _adjustmentP5W.Value = values[12 + 2];
 
-            _adjustmentP6X.Value = float.Parse(lines[15 + 0]);
-            _adjustmentP6Y.Value = float.Parse(lines[15 + 1]);
-            _adjustmentP6W.Value = float.Parse(lines[15 + 2]);
+            _adjustmentP6X.Value = values[15 + 0];
+            _adjustmentP6Y.Value = values[15 + 1];
+            _adjustmentP6W.Value = values[15 + 2];
         }
 
         private void Window_DeleteEvent(object sender, DeleteEventArgs args)
@@ -424,7 +430,7 @@ namespace cw
             model4fLocation        = gl.GetUniformLocation(shaderProgram, "model4f");
             useSingleColorLocation = gl.GetUniformLocation(shaderProgram, "useSingleColor");
             singleColor3fLocation  = gl.GetUniformLocation(shaderProgram, "singleColor3f");
-            moveToCornerLocation  = gl.GetUniformLocation(shaderProgram, "moveToCorner");
+            moveToCornerLocation   = gl.GetUniformLocation(shaderProgram, "moveToCorner");
             ka3fLocation           = gl.GetUniformLocation(shaderProgram, "ka3f");
             kd3fLocation           = gl.GetUniformLocation(shaderProgram, "kd3f");
             ks3fLocation           = gl.GetUniformLocation(shaderProgram, "ks3f");
