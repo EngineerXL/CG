@@ -422,8 +422,9 @@ namespace lab6
             gl.Enable(OpenGL.GL_LINE_SMOOTH);
             gl.Hint(OpenGL.GL_LINE_SMOOTH_HINT, OpenGL.GL_NICEST);
 
-            gl.Enable(OpenGL.GL_POLYGON_SMOOTH);
-            gl.Hint(OpenGL.GL_POLYGON_SMOOTH_HINT, OpenGL.GL_NICEST);
+            /* Может появится сетка */
+            // gl.Enable(OpenGL.GL_POLYGON_SMOOTH);
+            // gl.Hint(OpenGL.GL_POLYGON_SMOOTH_HINT, OpenGL.GL_NICEST);
 
             gl.ClearColor(0, 0, 0, 0);
         }

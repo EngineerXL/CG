@@ -6,7 +6,7 @@
         <!-- ЗАМЕНИТЬ КОНСТАНТУ НА LINUX WINDOWS или MACOS в зависимости от используемой ОС -->
         <DefineConstants>TRACE;LINUX</DefineConstants>
     </PropertyGroup>
-    
+
     <ItemGroup>
         <Content Remove="Gtk\**" />
         <Compile Remove="Gtk\**" />
@@ -19,5 +19,5 @@
             <LogicalName>%(Filename)%(Extension)</LogicalName>
         </EmbeddedResource>
     </ItemGroup>
-    
+
 </Project>

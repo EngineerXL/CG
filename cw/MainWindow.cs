@@ -141,10 +141,11 @@ namespace cw
         private const float SOURCE_SIZE = 12;
         [UI] private CheckButton _checkButtonAutoScale = null;
         [UI] private CheckButton _checkButtonIgnoreInvisible = null;
-        [UI] private CheckButton _checkButtonDrawAxises = null;
-        private const float AXIS_SIZE = 0.1f;
+        [UI] private CheckButton _checkButtonPolygonSmooth = null;
         [UI] private CheckButton _checkButtonDrawControlPoints = null;
         [UI] private CheckButton _checkButtonDrawControlLine = null;
+        [UI] private CheckButton _checkButtonDrawAxises = null;
+        private const float AXIS_SIZE = 0.1f;
         [UI] private RadioButton _radioButtonNoShading = null;
         [UI] private RadioButton _radioButtonSimpleShading = null;
 
@@ -292,6 +293,15 @@ namespace cw
             else
             {
                 gl.Disable(OpenGL.GL_DEPTH_TEST);
+            }
+            if (_checkButtonPolygonSmooth.Active)
+            {
+                gl.Enable(OpenGL.GL_POLYGON_SMOOTH);
+                gl.Hint(OpenGL.GL_POLYGON_SMOOTH_HINT, OpenGL.GL_NICEST);
+            }
+            else
+            {
+                gl.Disable(OpenGL.GL_POLYGON_SMOOTH);
             }
             if (_checkButtonFillPolygons.Active)
             {
@@ -537,8 +547,6 @@ namespace cw
             gl.Enable(OpenGL.GL_BLEND);
             gl.BlendFunc(OpenGL.GL_SRC_ALPHA, OpenGL.GL_ONE_MINUS_SRC_ALPHA);
 
-            // gl.Enable(OpenGL.GL_CULL_FACE);
-
             gl.Enable(OpenGL.GL_POINT_SMOOTH);
             gl.Hint(OpenGL.GL_POINT_SMOOTH_HINT, OpenGL.GL_NICEST);
 
@@ -625,9 +633,10 @@ namespace cw
             _checkButtonDrawSource.Toggled += Redraw;
             _checkButtonAutoScale.Toggled += Redraw;
             _checkButtonIgnoreInvisible.Toggled += Redraw;
-            _checkButtonDrawAxises.Toggled += Redraw;
+            _checkButtonPolygonSmooth.Toggled += Redraw;
             _checkButtonDrawControlPoints.Toggled += Redraw;
             _checkButtonDrawControlLine.Toggled += Redraw;
+            _checkButtonDrawAxises.Toggled += Redraw;
             _radioButtonNoShading.Toggled += Redraw;
             _radioButtonSimpleShading.Toggled += Redraw;
         }
