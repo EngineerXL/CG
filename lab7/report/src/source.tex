@@ -1,0 +1,50 @@
+\section{Исходный код}
+
+Файл \textit{Curve.cs} содержит код для генерации B-сплайна и методов изменения её параметров. В программе предусмотрено перемещение, добавление и удаление контрольных точек.
+
+\begin{lstlisting}{language=[Sharp]C}
+Matrix4D ConvertToMatrix(Vector4D v1, Vector4D v2, Vector4D v3, Vector4D v4)
+{
+    List<Vector4D> tmp = new List<Vector4D>(4);
+    tmp.Add(v1);
+    tmp.Add(v2);
+    tmp.Add(v3);
+    tmp.Add(v4);
+    Matrix4D res = new Matrix4D();
+    for (int i = 0; i < 4; ++i)
+    {
+        res[0, i] = tmp[i].X;
+        res[1, i] = tmp[i].Y;
+        res[2, i] = tmp[i].Z;
+        res[3, i] = tmp[i].W;
+    }
+    return res;
+}
+
+public void CalcCurve()
+{
+    CountData = STEPS * (CountPoints - 3);
+    Data = new List<Vector4D>(CountData);
+    for (int i = 0; i < CountPoints - 3; ++i)
+    {
+        Vector4D p0 = Points[i];
+        Vector4D p1 = Points[i + 1];
+        Vector4D p2 = Points[i + 2];
+        Vector4D p3 = Points[i + 3];
+        Matrix4D tmp = ConvertToMatrix(p0, p1, p2, p3) * basisMatrix;
+
+        for (int j = 0; j < STEPS; ++j)
+        {
+            double t = STEP * j;
+            Vector4D tt = new Vector4D(1, t, Math.Pow(t, 2), Math.Pow(t, 3));
+            Data.Add(tmp * tt);
+        }
+    }
+}
+\end{lstlisting}
+
+\textit{Geometry.cs} содержит классы векторов и матрицы, методы для работы с ними.
+В \textit{Misc.cs} заданы константы, используемые во всей программе.
+Вся работа с интерфейсом, компиляция шейдеров, создание буфера вершин описаны в \textit{MainWindow.cs}.
+
+\pagebreak

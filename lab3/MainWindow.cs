@@ -540,6 +540,21 @@ namespace lab3
             }
         }
 
+        private Vector4D GetVectorL(Vector4D p)
+        {
+            return lightSource - p;
+        }
+
+        private Vector4D GetVectorR(Vector4D p, Vector4D n, Vector4D l)
+        {
+            return 2 * n * Vector4D.Dot(n, l) - l;
+        }
+
+        private Vector4D GetVectorS(Vector4D p)
+        {
+            return INF_VEC - p;
+        }
+
         private Misc.Colour GenShadePoint(Misc.Colour col, Vector4D point, Vector4D N)
         {
             N.Normalize();
@@ -669,7 +684,6 @@ namespace lab3
             FillPolygon(cr, high, il);
         }
 
-        /* ToDo вытравить жуков */
         private void GouraudPolygon(Context cr, int id)
         {
             List<Vector4D> polyVertices = new List<Vector4D>();
@@ -739,21 +753,6 @@ namespace lab3
                     DrawRayVectors(cr, poly);
                 }
             }
-        }
-
-        private Vector4D GetVectorL(Vector4D p)
-        {
-            return lightSource - p;
-        }
-
-        private Vector4D GetVectorR(Vector4D p, Vector4D n, Vector4D l)
-        {
-            return 2 * n * Vector4D.Dot(n, l) - l;
-        }
-
-        private Vector4D GetVectorS(Vector4D p)
-        {
-            return INF_VEC - p;
         }
 
         private void DrawRayVectors(Context cr, Polygon poly)

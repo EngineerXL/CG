@@ -211,36 +211,6 @@ namespace lab3
                     }
                 }
             }
-
-            // Console.WriteLine("GenVertN");
-            // for (int i = 0; i < _vertices.Count; ++i)
-            // {
-            //     VertexPolygonsPair curPair = _vertices[i];
-            //     curPair.First.N.Assign(new Vector4D());
-            // }
-            // foreach (Polygon poly in _polygons)
-            // {
-            //     Vector4D N = poly.NormalVector();
-            //     Console.WriteLine("normal");
-            //     Console.WriteLine(N.X.ToString() + ", " + N.Y.ToString() + ", " + N.Z.ToString());
-            //     for (int i = 0; i < poly._data.Count; ++i)
-            //     {
-            //         Console.WriteLine("summ");
-            //         Console.WriteLine(poly._data[i].N.X.ToString() + ", " + poly._data[i].N.Y.ToString() + ", " + poly._data[i].N.Z.ToString());
-            //         poly._data[i].N = poly._data[i].N + N;
-            //         Console.WriteLine("summed");
-            //         Console.WriteLine(poly._data[i].N.X.ToString() + ", " + poly._data[i].N.Y.ToString() + ", " + poly._data[i].N.Z.ToString());
-            //     }
-            // }
-            // for (int i = 0; i < _vertices.Count; ++i)
-            // {
-            //     VertexPolygonsPair curPair = _vertices[i];
-            //     Console.WriteLine("Vertex:");
-            //     Console.WriteLine(curPair.First.vertex.X.ToString() + ", " + curPair.First.vertex.Y.ToString() + ", " + curPair.First.vertex.Z.ToString());
-            //     Console.WriteLine(curPair.First.N.X.ToString() + ", " + curPair.First.N.Y.ToString() + ", " + curPair.First.N.Z.ToString());
-            //     curPair.First.N = curPair.First.N / (double) curPair.Second.Count;
-            //     curPair.First.N.Normalize();
-            // }
         }
 
         private void GenVertexPolygons()

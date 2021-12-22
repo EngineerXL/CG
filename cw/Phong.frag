@@ -21,20 +21,18 @@ void main(void) {
         color = vec4(singleColor3f, 1.0f);
         return;
     }
+    vec3 n = normal;
+    if (!gl_FrontFacing) {
+        n = -n;
+    }
     vec3 res = singleColor3f;
     vec3 l = light3f - position;
     float d = length(l);
     l = normalize(l);
     vec3 s = normalize(camera - position);
-    vec3 r = normalize(2 * normal * dot(normal, l) - l);
-    float diffusal = dot(l, normal);
+    vec3 r = normalize(2 * n * dot(n, l) - l);
+    float diffusal = dot(l, n);
     float specular = dot(r, s);
-    if (!gl_FrontFacing) {
-        s = normalize(camera - position);
-        r = normalize(2 * -normal * dot(-normal, l) - l);
-        diffusal = dot(l, -normal);
-        specular = dot(r, s);
-    }
     if (diffusal < 1e-3) {
         diffusal = 0;
         specular = 0;

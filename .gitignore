@@ -1,6 +1,3 @@
-# makefile
-makefile
-
 # Build results
 [Bb]in/
 [Oo]bj/
@@ -8,3 +5,11 @@ makefile
 # Glage temporary files
 MainWindow.glade~
 
+# makefile
+makefile
+
+# LaTeX output files
+report.aux
+report.log
+report.out
+report.pdf

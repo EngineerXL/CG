@@ -1,0 +1,248 @@
+\section{Исходный код}
+
+Файл \textit{Figure.cs} содержит код для генерации фигуры. После генерации точек, образующих поверхность, задаются полигоны, вычисляются вектора нормали к вершинам.
+
+\begin{lstlisting}{language=[Sharp]C}
+public Figure(int paramPhi, int paramTheta, double paramR, double maxTheta, Misc.Colour col)
+{
+    ParamPhi = paramPhi;
+    ParamTheta = paramTheta - 1;
+    R = paramR;
+    MaxTheta = Misc.ToRadians(maxTheta);
+    DeltaPhi = Misc.ToRadians(Misc.MAX_DEG / (double)(ParamPhi));
+    DeltaTheta = MaxTheta / (double)(ParamTheta);
+    FigureColour = col;
+    GenVertices();
+    GenFigure();
+    GenVertexNormals();
+}
+
+private void GenVertices()
+{
+    CenterLow = new Vertex(0, 0, R * Math.Cos(MaxTheta), FigureColour);
+    CenterHigh = new Vertex(0, 0, R, FigureColour);
+    Vertices = new List<Vertex>();
+    Vertices.Add(CenterLow);
+    Vertices.Add(CenterHigh);
+    LayerVertices = new List< List<Vertex> >();
+    double stepTheta = DeltaTheta;
+    for (int i = 0; i < ParamTheta; ++i)
+    {
+        double curZ = R * Math.Cos(stepTheta);
+        double curXY = R * Math.Sin(stepTheta);
+        double stepPhi = 0;
+        List<Vertex> curLayerVertices = new List<Vertex>();
+        for (int j = 0; j < ParamPhi; ++j)
+        {
+            Vertex curVertex = new Vertex(curXY * Math.Cos(stepPhi), curXY * Math.Sin(stepPhi), curZ, FigureColour);
+            curLayerVertices.Add(curVertex);
+            Vertices.Add(curVertex);
+            stepPhi = stepPhi + DeltaPhi;
+        }
+        LayerVertices.Add(curLayerVertices);
+        stepTheta = stepTheta + DeltaTheta;
+    }
+    for (int i = 0; i < Vertices.Count; ++i)
+    {
+        Vertices[i].Id = i;
+    }
+}
+
+private void GenFigure()
+{
+    Polygons = new List<Polygon>();
+    GenLow();
+    GenHigh();
+    GenSphere();
+}
+
+private void GenLow()
+{
+    int lastLayerInd = LayerVertices.Count - 1;
+    for (int j = 0; j < ParamPhi; ++j)
+    {
+        Vertex a = LayerVertices[lastLayerInd][j];
+        Vertex b = LayerVertices[lastLayerInd][(j + 1) % ParamPhi];
+        Polygons.Add(new Polygon(CenterLow, b, a));
+    }
+}
+
+private void GenSphere()
+{
+    for (int i = 0; i < ParamTheta - 1; ++i)
+    {
+        for (int j = 0; j < ParamPhi; ++j)
+        {
+            Vertex a = LayerVertices[i][j];
+            Vertex b = LayerVertices[i][(j + 1) % ParamPhi];
+            Vertex c = LayerVertices[i + 1][(j + 1) % ParamPhi];
+            Vertex d = LayerVertices[i + 1][j];
+            Polygons.Add(new Polygon(a, c, b));
+            Polygons.Add(new Polygon(c, a, d));
+        }
+    }
+}
+
+private void GenHigh()
+{
+    for (int j = 0; j < ParamPhi; ++j)
+    {
+        Vertex a = LayerVertices[0][j];
+        Vertex b = LayerVertices[0][(j + 1) % ParamPhi];
+        Polygons.Add(new Polygon(CenterHigh, a, b));
+    }
+}
+
+public void GenVertexNormals()
+{
+    foreach (Vertex vert in Vertices)
+    {
+        vert.Normal = new Vector4D();
+        vert.Normal.W = 0;
+    }
+    foreach (Polygon poly in Polygons)
+    {
+        Vector4D polyN = poly.NormalVector();
+        polyN.Normalize();
+        foreach (Vertex vert in poly.Data)
+        {
+            vert.Normal = vert.Normal + polyN;
+            vert.Normal.W += 1;
+        }
+    }
+    foreach (Vertex vert in Vertices)
+    {
+        vert.Normal.X = vert.Normal.X / vert.Normal.W;
+        vert.Normal.Y = vert.Normal.Y / vert.Normal.W;
+        vert.Normal.Z = vert.Normal.Z / vert.Normal.W;
+        vert.Normal.W = 0;
+        vert.Normal.Normalize();
+    }
+}
+\end{lstlisting}
+
+\textit{Geometry.cs} содержит классы векторов и матрицы, методы для работы с ними.
+В \textit{Misc.cs} заданы константы, используемые во всей программе.
+\pagebreak
+
+Вся работа с интерфейсом, компиляция шейдеров, создание буфера вершин описаны в \textit{MainWindow.cs}. Компиляция шейдеров:
+\begin{lstlisting}{language=[Sharp]C}
+private void CompileShaders()
+{
+    int[] success = new int[1];
+    System.Text.StringBuilder txt = new System.Text.StringBuilder(512);
+
+    vertexShader = gl.CreateShader(OpenGL.GL_VERTEX_SHADER);
+    gl.ShaderSource(vertexShader, HelpUtils.ReadFromRes("Phong.vert"));
+    gl.CompileShader(vertexShader);
+
+    gl.GetShader(vertexShader, OpenGL.GL_COMPILE_STATUS, success);
+    if (success[0] == 0)
+    {
+        gl.GetShaderInfoLog(vertexShader, 512, (IntPtr)0, txt);
+        Console.WriteLine("Vertex shader compilation failed!\n" + txt);
+    }
+
+    fragmentShader = gl.CreateShader(OpenGL.GL_FRAGMENT_SHADER);
+    gl.ShaderSource(fragmentShader, HelpUtils.ReadFromRes("Phong.frag"));
+    gl.CompileShader(fragmentShader);
+
+    gl.GetShader(fragmentShader, OpenGL.GL_COMPILE_STATUS, success);
+    if (success[0] == 0)
+    {
+        gl.GetShaderInfoLog(fragmentShader, 512, (IntPtr)0, txt);
+        Console.WriteLine("Fragment shader compilation failed!\n" + txt);
+    }
+
+    shaderProgram = gl.CreateProgram();
+    gl.AttachShader(shaderProgram, vertexShader);
+    gl.AttachShader(shaderProgram, fragmentShader);
+    gl.LinkProgram(shaderProgram);
+
+    gl.GetProgram(vertexShader, OpenGL.GL_LINK_STATUS, success);
+    if (success[0] == 0)
+    {
+        gl.GetProgramInfoLog(vertexShader, 512, (IntPtr)0, txt);
+        Console.WriteLine("Shader program linking failed!\n" + txt);
+    }
+}
+\end{lstlisting}
+\pagebreak
+
+Вершинный шейдер \textit{Phong.vert} преобразует локальные координаты в видовые, затем передаёт их фрагментному шейдеру.
+
+\begin{lstlisting}{language=GLSL}
+#version 150 core
+
+in vec3 cord3f;
+in vec3 col3f;
+in vec3 norm3f;
+out vec3 position;
+out vec3 normal;
+
+uniform mat4 proj4f;
+uniform mat4 view4f;
+uniform mat4 model4f;
+uniform bool useSingleColor;
+uniform vec3 singleColor3f;
+
+void main(void) {
+    vec4 vertexPos = vec4(cord3f, 1.0f);
+    vertexPos = (proj4f * view4f * model4f) * vertexPos;
+    vec4 vertexNormal = vec4(norm3f, 0.0f);
+    vertexNormal = (view4f * model4f) * vertexNormal;
+    position = vertexPos.xyz;
+    normal = normalize(vertexNormal.xyz);
+    gl_Position = vertexPos;
+}
+\end{lstlisting}
+\pagebreak
+
+Фрагментный шейдер \textit{Phong.frag} реализует затенение Фонга, интерполирующее нормаль к точке.
+
+\begin{lstlisting}{language=GLSL}
+#version 150 core
+
+in vec3 position;
+in vec3 normal;
+out vec4 color;
+
+uniform bool useSingleColor;
+uniform vec3 singleColor3f;
+uniform vec3 ka3f;
+uniform vec3 kd3f;
+uniform vec3 ks3f;
+uniform vec3 light3f;
+uniform vec3 ia3f;
+uniform vec3 il3f;
+uniform float p;
+uniform vec3 camera = vec3(0, 0, -1e9f);
+uniform float k = 0.5;
+
+void main(void) {
+    if (useSingleColor) {
+        color = vec4(singleColor3f, 1.0f);
+        return;
+    }
+    vec3 res = singleColor3f;
+    vec3 l = light3f - position;
+    float d = length(l);
+    l = normalize(l);
+    vec3 s = normalize(camera - position);
+    vec3 r = normalize(2 * normal * dot(normal, l) - l);
+    float diffusal = dot(l, normal);
+    float specular = dot(r, s);
+    if (diffusal < 1e-3) {
+        diffusal = 0;
+        specular = 0;
+    }
+    if (specular < 1e-3) {
+        specular = 0;
+    }
+    for (int i = 0; i < 3; ++i) {
+        res[i] = res[i] * (ia3f[i] * ka3f[i] + il3f[i] * (kd3f[i] * diffusal + ks3f[i] * pow(specular, p)) / (d + k));
+    }
+    color = vec4(res, 1.0f);
+}
+\end{lstlisting}
+\pagebreak

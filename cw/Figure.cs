@@ -154,20 +154,7 @@ namespace cw
         private void GenFigure()
         {
             Polygons = new List<Polygon>();
-            // GenLow();
-            // GenHigh();
             GenCenter();
-        }
-
-        private void GenLow()
-        {
-            int lastLayerInd = LayerVertices.Count - 1;
-            for (int j = 0; j < ParamPhi; ++j)
-            {
-                Vertex a = LayerVertices[lastLayerInd][j];
-                Vertex b = LayerVertices[lastLayerInd][(j + 1) % ParamPhi];
-                Polygons.Add(new Polygon(CenterLow, b, a));
-            }
         }
 
         private void GenCenter()
@@ -183,16 +170,6 @@ namespace cw
                     Polygons.Add(new Polygon(a, c, b));
                     Polygons.Add(new Polygon(c, a, d));
                 }
-            }
-        }
-
-        private void GenHigh()
-        {
-            for (int j = 0; j < ParamPhi; ++j)
-            {
-                Vertex a = LayerVertices[0][j];
-                Vertex b = LayerVertices[0][(j + 1) % ParamPhi];
-                Polygons.Add(new Polygon(CenterHigh, a, b));
             }
         }
 
