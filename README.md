@@ -13,9 +13,11 @@
 
 **Поверхность вращения. Образующая --- NURBS кривая 4-го порядка.**
 
-<!-- ![cw1](./resources/cw1.gif) -->
+![cw1](./resources/cw1.gif)
 
-<!-- ![cw2](./resources/cw2.gif) -->
+![cw2](./resources/cw2.gif)
+
+![cw3](./resources/cw3.gif)
 
 ### Лабораторная работа №1
 
